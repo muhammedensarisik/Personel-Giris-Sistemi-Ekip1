@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimalist Admin Panel - Antigravity</title>
+  
+  <!-- Tailwind CSS v4 Play CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Clean Architecture Main Entry Controller -->
+  <script type="module" src="app.js"></script>
+  
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --color-brand-primary: #0f172a; /* Slate 900 */
+      --color-brand-accent: #4f46e5; /* Indigo 600 */
+      --color-brand-accent-hover: #4338ca; /* Indigo 700 */
+      --color-dark-bg: #0b0f19; /* Sleek dark blue-black */
+      --color-dark-card: #151c2c;
+      --color-dark-border: #1e293b;
+    }
+
+    /* Custom Transitions & Micro-animations */
+    .fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Glassmorphism details */
+    .glass-effect {
+      backdrop-filter: blur(12px);
+      background-color: rgba(255, 255, 255, 0.75);
+    }
+    .dark .glass-effect {
+      backdrop-filter: blur(12px);
+      background-color: rgba(21, 28, 44, 0.75);
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-dark-bg dark:text-slate-100 min-h-screen flex flex-col">
+
+  <!-- ==================== LOGIN VIEW ==================== -->
+  <div id="login-layout" class="w-full min-h-screen flex items-center justify-center bg-slate-50 dark:bg-dark-bg transition-colors duration-300 p-4 hidden">
+    <!-- Clean modern centered login card -->
+    <div class="w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl p-8 fade-in">
+      <div class="text-center mb-8">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-indigo-600/30 mb-4">
+          AG
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Hoş Geldiniz</h2>
+        <p class="text-xs text-slate-400 mt-1">Antigravity Yönetim Paneline erişmek için giriş yapın.</p>
+      </div>
+
+      <!-- Error alert container -->
+      <div id="login-error-alert" class="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-semibold mb-6 hidden">
+        Hatalı e-posta veya şifre.
+      </div>
+
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">E-posta Adresi</label>
+          <input type="email" id="login-email" required placeholder="admin@example.com" class="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:border-indigo-500 dark:bg-slate-800 outline-hidden transition-all text-slate-800 dark:text-slate-200">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Şifre</label>
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:border-indigo-500 dark:bg-slate-800 outline-hidden transition-all text-slate-800 dark:text-slate-200">
+        </div>
+        
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/25 transition-all cursor-pointer mt-2 flex items-center justify-center gap-2">
+          <span>Giriş Yap</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== APP LAYOUT CONTAINER ==================== -->
+  <div id="app-layout" class="w-full min-h-screen flex hidden">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <!-- Desktop Sidebar -->
+  <aside id="sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 transition-all duration-300 relative z-30">
+    <!-- Brand / Logo -->
+    <div class="h-16 flex items-center px-6 border-b border-slate-800 gap-3">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-600/30">
+        AG
+      </div>
+      <div class="flex flex-col">
+        <span class="font-bold text-white text-sm tracking-wide">ANTIGRAVITY</span>
+        <span class="text-[10px] text-slate-500 font-medium">KONTROL PANELİ</span>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+      <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Genel</p>
+      
+      <button onclick="switchTab('dashboard')" id="btn-dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group active-nav bg-indigo-600 text-white shadow-md shadow-indigo-600/10">
+        <i data-lucide="layout-dashboard" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>Dashboard</span>
+      </button>
+
+      <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Yönetim</p>
+
+      <button onclick="switchTab('personeller')" id="btn-personeller" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="users" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>Personeller</span>
+      </button>
+
+      <button onclick="switchTab('logs')" id="btn-logs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="file-clock" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>Giriş/Çıkış Kayıtları</span>
+      </button>
+
+      <button onclick="switchTab('overtime')" id="btn-overtime" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="clock" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>Fazla Mesailer</span>
+      </button>
+
+      <button onclick="switchTab('leave')" id="btn-leave" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="calendar-off" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>İzin Talepleri</span>
+      </button>
+
+      <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Analiz</p>
+
+      <button onclick="switchTab('raporlar')" id="btn-raporlar" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
+        <span>Raporlar</span>
+      </button>
+    </nav>
+
+    <!-- Sidebar Footer / Profile Info Summary -->
+    <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+            ED
+          </div>
+          <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
+        </div>
+        <div class="flex flex-col min-w-0">
+          <span id="sidebar-fullname" class="text-sm font-semibold text-white truncate">Elif Demir</span>
+          <span id="sidebar-role" class="text-xs text-slate-500 truncate">Sistem Yöneticisi</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Sidebar (Off-canvas) -->
+  <div id="mobile-sidebar" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true">
+    <!-- Backdrop -->
+    <div onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    
+    <!-- Sidebar Menu container -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col z-50 shadow-2xl transition-transform transform translate-x-0 duration-300">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+            AG
+          </div>
+          <span class="font-bold text-white text-sm tracking-wide">ANTIGRAVITY</span>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Genel</p>
+        <button onclick="switchTab('dashboard'); toggleMobileSidebar()" id="mob-btn-dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Yönetim</p>
+        <button onclick="switchTab('personeller'); toggleMobileSidebar()" id="mob-btn-personeller" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Personeller</span>
+        </button>
+        <button onclick="switchTab('logs'); toggleMobileSidebar()" id="mob-btn-logs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="file-clock" class="w-4 h-4"></i>
+          <span>Giriş/Çıkış Kayıtları</span>
+        </button>
+
+        <button onclick="switchTab('overtime'); toggleMobileSidebar()" id="mob-btn-overtime" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Fazla Mesailer</span>
+        </button>
+
+        <button onclick="switchTab('leave'); toggleMobileSidebar()" id="mob-btn-leave" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="calendar-off" class="w-4 h-4"></i>
+          <span>İzin Talepleri</span>
+        </button>
+
+        <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Analiz</p>
+        <button onclick="switchTab('raporlar'); toggleMobileSidebar()" id="mob-btn-raporlar" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Raporlar</span>
+        </button>
+      </nav>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+        <div class="flex items-center gap-3">
+          <div id="mob-sidebar-avatar" class="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+            ED
+          </div>
+          <div>
+            <div id="mob-sidebar-fullname" class="text-sm font-semibold text-white">Elif Demir</div>
+            <div id="mob-sidebar-role" class="text-xs text-slate-500">Sistem Yöneticisi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <div class="flex-1 flex flex-col min-w-0">
+    
+    <!-- ==================== HEADER ==================== -->
+    <header class="h-16 border-b border-slate-200 dark:border-dark-border bg-white dark:bg-dark-card sticky top-0 z-20 transition-colors duration-300">
+      <div class="h-full flex items-center justify-between px-6">
+        
+        <!-- Search & Toggle Mobile Menu -->
+        <div class="flex items-center gap-4 flex-1 max-w-lg">
+          <button onclick="toggleMobileSidebar()" class="md:hidden p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Header Actions (Notifications, Theme Toggle, Profile) -->
+        <div class="flex items-center gap-3">
+          
+          <!-- Theme Toggle Button -->
+          <button onclick="toggleTheme()" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Koyu/Açık Tema">
+            <i id="theme-icon-light" data-lucide="sun" class="w-4 h-4 hidden"></i>
+            <i id="theme-icon-dark" data-lucide="moon" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Notifications Dropdown Trigger -->
+          <div class="relative">
+            <button onclick="toggleNotifications()" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative cursor-pointer" title="Bildirimler">
+              <i data-lucide="bell" class="w-4 h-4"></i>
+              <span id="notif-badge" class="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-dark-card"></span>
+            </button>
+
+            <!-- Notifications Dropdown Box -->
+            <div id="notifications-dropdown" class="absolute right-0 mt-2 w-80 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border shadow-xl py-2 hidden fade-in z-50">
+              <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <span class="font-semibold text-sm">Bildirimler</span>
+                <button onclick="markAllNotificationsRead()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Hepsini Oku</button>
+              </div>
+              <div id="notifications-list" class="max-h-64 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
+                <!-- Notifications populated by JS -->
+              </div>
+              <div class="px-4 py-2 text-center border-t border-slate-100 dark:border-slate-800">
+                <span class="text-xs text-slate-400">Tüm bildirimleri gör</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vertical Divider -->
+          <div class="h-6 w-px bg-slate-200 dark:bg-dark-border"></div>
+
+          <!-- User Profile Dropdown Trigger -->
+          <div class="relative">
+            <button onclick="toggleProfileDropdown()" class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+              <div id="header-avatar" class="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 font-bold text-xs">
+                ED
+              </div>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+
+            <!-- Profile Dropdown Box -->
+            <div id="profile-dropdown" class="absolute right-0 mt-2 w-52 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border shadow-xl py-1.5 hidden fade-in z-50">
+              <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+                <p class="text-xs text-slate-400">Giriş Yapıldı</p>
+                <p id="dropdown-fullname" class="text-sm font-semibold truncate">Elif Demir</p>
+              </div>
+              <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                <i data-lucide="user" class="w-4 h-4"></i> Profil Bilgileri
+              </a>
+              <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                <i data-lucide="settings" class="w-4 h-4"></i> Ayarlar
+              </a>
+              <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+              <button onclick="handleLogout()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-left cursor-pointer">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Güvenli Çıkış
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT AREA ==================== -->
+    <main id="main-content" class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto fade-in">
+      <!-- Content populated dynamically by script -->
+    </main>
+
+  </div>
+
+  <!-- ==================== ADD EMPLOYEE MODAL ==================== -->
+  <div id="add-employee-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" role="dialog" aria-modal="true">
+    <div onclick="toggleAddEmployeeModal()" class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+    <div class="relative w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl p-6 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold">Yeni Personel Ekle</h3>
+        <button onclick="toggleAddEmployeeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="add-employee-form" onsubmit="handleNewEmployeeSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Ad Soyad</label>
+          <input type="text" id="emp-fullname" required class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-indigo-500 dark:bg-slate-800 outline-hidden">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Departman</label>
+          <select id="emp-dept" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-indigo-500 dark:bg-slate-800 outline-hidden">
+            <option value="IT">IT / Yazılım</option>
+            <option value="IK">İnsan Kaynakları</option>
+            <option value="Tasarım">UI/UX Tasarım</option>
+            <option value="Yönetim">Yönetim / PM</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Görev / Rol</label>
+          <input type="text" id="emp-role" required class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:border-indigo-500 dark:bg-slate-800 outline-hidden">
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="toggleAddEmployeeModal()" class="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-medium">İptal</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/10">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  </div> <!-- Close app-layout -->
+
+  <!-- Realtime UI Toasts System container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Legacy global toast helper to avoid reference errors -->
+  <script>
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      
+      const toast = document.createElement('div');
+      toast.className = `p-3.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border bg-white dark:bg-dark-card border-slate-200 dark:border-dark-border text-slate-800 dark:text-slate-100 fade-in transition-all duration-300 transform translate-y-0`;
+      
+      let icon = 'check-circle';
+      let iconColor = 'text-emerald-500';
+      if (type === 'error') {
+        iconColor = 'text-rose-500';
+        icon = 'x-circle';
+      } else if (type === 'warning') {
+        iconColor = 'text-amber-500';
+        icon = 'alert-triangle';
+      }
+      
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 shrink-0 ${iconColor}"></i>
+        <span class="flex-1">${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+    window.showToast = showToast;
+  </script>
+</body>
+</html>
