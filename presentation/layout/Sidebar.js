@@ -1,9 +1,53 @@
 /**
- * Sidebar Component - Controls rendering and tab events for navigation
+ * Sidebar Component - Controls rendering, tab events, and collapsible sidebar state
  */
 export class Sidebar {
   constructor(onTabChange) {
     this.onTabChange = onTabChange;
+    this.isCollapsed = false;
+  }
+
+  init() {
+    // Restore saved collapse state from localStorage
+    const savedState = localStorage.getItem('antigravity_sidebar_collapsed');
+    if (savedState === 'true') {
+      this.setCollapsed(true);
+    }
+  }
+
+  /**
+   * Toggles collapsible sidebar between expanded (w-64) and collapsed (w-16)
+   */
+  toggleCollapse() {
+    this.setCollapsed(!this.isCollapsed);
+  }
+
+  /**
+   * Sets collapsed state explicitly
+   * @param {boolean} collapsed 
+   */
+  setCollapsed(collapsed) {
+    this.isCollapsed = collapsed;
+    const sidebar = document.getElementById('sidebar');
+    const toggleIcon = document.getElementById('sidebar-toggle-icon');
+
+    if (!sidebar) return;
+
+    if (collapsed) {
+      sidebar.classList.add('sidebar-collapsed', 'w-16');
+      sidebar.classList.remove('w-64');
+      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-right');
+    } else {
+      sidebar.classList.remove('sidebar-collapsed', 'w-16');
+      sidebar.classList.add('w-64');
+      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-left');
+    }
+
+    localStorage.setItem('antigravity_sidebar_collapsed', collapsed ? 'true' : 'false');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   }
 
   /**
@@ -11,7 +55,7 @@ export class Sidebar {
    * @param {string} tabId 
    */
   setActiveTab(tabId) {
-    ['dashboard', 'personeller', 'logs', 'overtime', 'leave', 'raporlar'].forEach(id => {
+    ['dashboard', 'personeller', 'logs', 'overtime', 'leave', 'duyurular', 'auditlogs', 'raporlar'].forEach(id => {
       const btn = document.getElementById(`btn-${id}`);
       const mobBtn = document.getElementById(`mob-btn-${id}`);
       

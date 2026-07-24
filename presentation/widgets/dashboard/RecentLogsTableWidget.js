@@ -1,5 +1,7 @@
 /**
- * RecentLogsTableWidget renders the "Son Giriş Yapanlar" table next to the chart.
+ * RecentLogsTableWidget renders the "Son Giriş/Çıkış Kayıtları" table in the main left column.
+ * Connected to GET /api/dashboard/recent.
+ * Fields: personnelName, department, checkIn, checkOut, duration, status.
  */
 export class RecentLogsTableWidget {
   constructor(onRefreshClick) {
@@ -11,129 +13,224 @@ export class RecentLogsTableWidget {
    */
   render() {
     return `
-      <!-- Son Giriş Yapanlar Table -->
-      <div class="bg-white dark:bg-dark-card border border-slate-100 dark:border-dark-border rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-        <div class="flex-1">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-sm">Son Giriş Yapanlar</h3>
-            <button id="btn-view-all-logs" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Tümü</button>
+      <!-- Son Giriş/Çıkış Kayıtları Main Table Card -->
+      <div id="widget-recent-logs" class="dashboard-draggable-widget bg-white dark:bg-dark-card border border-slate-100 dark:border-dark-border rounded-2xl p-6 shadow-xs flex flex-col justify-between transition-all">
+        <div>
+          <!-- Header Row -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base">Son Giriş / Çıkış Kayıtları</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">İşletmenizdeki güncel personel giriş-çıkış hareketleri</p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Refresh Icon Button -->
+              <button id="btn-refresh-dashboard" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-500 cursor-pointer" title="Verileri Yenile">
+                <i id="btn-refresh-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+              
+              <!-- Tüm Kayıtlar Button -->
+              <button id="btn-view-all-logs" class="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                Tüm Kayıtlar
+              </button>
+
+              <span class="widget-drag-handle p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing" title="Sürükle">
+                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+              </span>
+            </div>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Table Container -->
+          <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
             <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800 pb-2">
-                  <th class="pb-3 pr-2">Personel</th>
-                  <th class="pb-3 px-2">Saat</th>
-                  <th class="pb-3 text-right">Durum</th>
+              <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th class="py-3.5 px-4">PERSONEL</th>
+                  <th class="py-3.5 px-4">GİRİŞ SAATİ</th>
+                  <th class="py-3.5 px-4">ÇIKIŞ SAATİ</th>
+                  <th class="py-3.5 px-4">SÜRE</th>
+                  <th class="py-3.5 px-4 text-right">DURUM</th>
                 </tr>
               </thead>
-              <tbody id="recentLogsTableBody" class="divide-y divide-slate-50 dark:divide-slate-800/40">
-                <!-- populated dynamically -->
+              <tbody id="recentLogsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300 font-medium">
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-slate-400 font-semibold">
+                    <div class="flex items-center justify-center gap-2">
+                      <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Kayıtlar yükleniyor (/api/dashboard/recent)...</span>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
-        
-        <div class="pt-4 border-t border-slate-50 dark:border-slate-800 mt-4 text-[10px] text-slate-400 flex justify-between items-center">
-          <span>Son güncelleme: <span id="last-update-time">-</span></span>
-          <button id="btn-refresh-dashboard" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-all text-slate-500" title="Verileri Yenile">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-          </button>
+
+        <!-- Footer Row -->
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 mt-6 text-xs text-slate-400 flex items-center justify-between">
+          <span>Son güncelleme: <span id="last-update-time" class="font-semibold text-slate-600 dark:text-slate-300">-</span></span>
+          <span class="text-[11px] text-slate-400">Toplam kayıt: <strong class="text-slate-700 dark:text-slate-200" id="log-total-count">0</strong></span>
         </div>
       </div>
     `;
   }
 
   /**
-   * Populate the table rows with actual data
-   * @param {Array<Object>} entryLogs - mapped attendance logs
-   * @param {Array<Object>} employees - resolved personnel list
+   * Populate the table rows with actual data from GET /api/dashboard/recent or repository
+   * @param {Array<Object>} logsList - list of recent logs
+   * @param {Array<Object>} employees - resolved personnel list fallback
    */
-  update(entryLogs, employees) {
+  update(logsList = [], employees = []) {
     const tbody = document.getElementById('recentLogsTableBody');
     const updateTime = document.getElementById('last-update-time');
-    
+    const countEl = document.getElementById('log-total-count');
+
     if (updateTime) {
       updateTime.textContent = new Date().toLocaleTimeString('tr-TR');
     }
 
+    if (countEl) {
+      countEl.textContent = logsList.length;
+    }
+
     if (!tbody) return;
 
-    // Filters entries by checking if they contain an entryTime or time parameter
-    const recentEntries = entryLogs.filter(l => l.entryTime || l.time).slice(0, 5);
-    
-    if (recentEntries.length === 0) {
+    if (!logsList || logsList.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="3" class="py-4 text-center text-slate-400">Bugün giriş yapan bulunmamaktadır.</td>
+          <td colspan="5" class="py-8 text-center text-slate-400 font-semibold">Bugün henüz giriş yapan bulunmuyor.</td>
         </tr>
       `;
       return;
     }
 
-    tbody.innerHTML = recentEntries.map(log => {
-      // Find employee details
-      const emp = employees.find(e => e.id === log.employeeId) || { fullName: 'Bilinmeyen', avatar: 'B', role: 'Bilinmeyen' };
+    // Take recent 8-10 logs
+    const logs = logsList.slice(0, 10);
+
+    tbody.innerHTML = logs.map(item => {
+      // Defensive parsing for API properties (personnelName, role, department, checkIn, checkOut, duration, status)
+      const name = item.personnelName || item.fullName || item.employeeName || (employees.find(e => e.id === item.employeeId)?.fullName) || 'Personel';
+      const roleOrDept = item.role || item.department || item.departman || (employees.find(e => e.id === item.employeeId)?.role) || 'Genel Kadro';
       
-      let statusColor = 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/20';
-      if (log.status === 'Gecikmeli') {
-        statusColor = 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/20';
-      }
-
-      // Format time safely
-      const rawTime = log.entryTime || log.time || '';
-      let displayTime = '';
-
-      if (typeof log.getFormattedTime === 'function') {
-        displayTime = log.getFormattedTime();
-      } else {
+      const checkInRaw = item.checkIn || item.checkInTime || item.entryTime || item.time || '';
+      const checkOutRaw = item.checkOut || item.checkOutTime || item.exitTime || '';
+      
+      // Dynamic duration parsing - NO HARDCODED strings!
+      let durationStr = '—';
+      if (item.duration && item.duration !== '—') {
+        durationStr = item.duration;
+      } else if (checkInRaw && checkOutRaw && checkOutRaw !== '—') {
         try {
-          const date = new Date(rawTime);
-          if (!isNaN(date.getTime())) {
-            displayTime = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-          } else {
-            displayTime = rawTime.split(' ')[1] || rawTime;
+          const d1 = new Date(checkInRaw);
+          const d2 = new Date(checkOutRaw);
+          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+            const diffMs = Math.max(0, d2 - d1);
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            durationStr = `${hours} saat ${mins} dk`;
           }
         } catch (e) {
-          displayTime = rawTime;
+          durationStr = '—';
+        }
+      } else if (checkInRaw && (!checkOutRaw || checkOutRaw === '—')) {
+        durationStr = 'Devam Ediyor';
+      }
+
+      const rawStatus = (item.status || item.durum || '').toString().toLowerCase();
+
+      // Format checkIn time
+      let checkInStr = '—';
+      if (checkInRaw) {
+        try {
+          const d = new Date(checkInRaw);
+          checkInStr = !isNaN(d.getTime()) ? d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : checkInRaw;
+        } catch (e) {
+          checkInStr = checkInRaw;
         }
       }
 
+      // Format checkOut time
+      let checkOutStr = '— (İçeride)';
+      if (checkOutRaw && checkOutRaw !== '—') {
+        try {
+          const d = new Date(checkOutRaw);
+          checkOutStr = !isNaN(d.getTime()) ? d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : checkOutRaw;
+        } catch (e) {
+          checkOutStr = checkOutRaw;
+        }
+      }
+
+      // Format initials
+      const initials = (name.split(' ')[0][0] + (name.split(' ')[1]?.[0] || '')).toUpperCase();
+
+      // Status Badge Logic: Late -> Geç, OnTime/Normal -> Normal
+      let statusBadgeHtml = '';
+      if (rawStatus.includes('late') || rawStatus.includes('geç') || rawStatus.includes('gecik')) {
+        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">Geç</span>`;
+      } else if (checkOutRaw && checkOutRaw !== '—') {
+        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">Mesai Bitti</span>`;
+      } else {
+        statusBadgeHtml = `<span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">Normal</span>`;
+      }
+
       return `
-        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors">
-          <td class="py-3 pr-2">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px] shrink-0">
-                ${emp.avatar || '??'}
+        <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+          <!-- Personel -->
+          <td class="py-3.5 px-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs shrink-0">
+                ${initials}
               </div>
               <div class="min-w-0">
-                <p class="font-semibold text-slate-800 dark:text-slate-200 truncate">${emp.fullName}</p>
-                <p class="text-[9px] text-slate-400 truncate">${emp.role}</p>
+                <p class="font-bold text-slate-900 dark:text-white truncate">${name}</p>
+                <p class="text-[10px] text-slate-400 truncate">${roleOrDept}</p>
               </div>
             </div>
           </td>
-          <td class="py-3 px-2 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-            ${displayTime}
+
+          <!-- Giriş Saati -->
+          <td class="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
+            ${checkInStr}
           </td>
-          <td class="py-3 text-right">
-            <span class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${statusColor}">
-              ${log.status}
-            </span>
+
+          <!-- Çıkış Saati -->
+          <td class="py-3.5 px-4 font-semibold text-slate-500 dark:text-slate-400">
+            ${checkOutStr}
+          </td>
+
+          <!-- Süre -->
+          <td class="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
+            ${durationStr}
+          </td>
+
+          <!-- Durum -->
+          <td class="py-3.5 px-4 text-right">
+            ${statusBadgeHtml}
           </td>
         </tr>
       `;
     }).join('');
 
-    // Setup event listeners
+    // Event Listeners for Buttons
     const viewAllBtn = document.getElementById('btn-view-all-logs');
     if (viewAllBtn) {
-      viewAllBtn.onclick = () => window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'logs' } }));
+      viewAllBtn.onclick = () => {
+        window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'logs' } }));
+      };
     }
 
     const refreshBtn = document.getElementById('btn-refresh-dashboard');
     if (refreshBtn && this.onRefreshClick) {
-      refreshBtn.onclick = this.onRefreshClick;
+      refreshBtn.onclick = () => {
+        const icon = document.getElementById('btn-refresh-icon');
+        if (icon) icon.classList.add('animate-spin');
+        
+        Promise.resolve(this.onRefreshClick()).finally(() => {
+          setTimeout(() => {
+            if (icon) icon.classList.remove('animate-spin');
+          }, 400);
+        });
+      };
     }
 
     if (window.lucide) {

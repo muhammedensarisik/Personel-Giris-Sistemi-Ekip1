@@ -97,11 +97,11 @@ export class AttendanceTableWidget {
 
       if (isInside) {
         badgeStyle = 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/20';
-        statusText = 'İçeride';
+        statusText = 'Mesaisi Devam Ediyor';
 
         // Check if checkInTime is missing due to database NULL state
         if (!item?.entryTime || item?.entryTime === 'null' || item?.entryTime === '') {
-          console.warn(`Veritabanı Hatası: Kayıt ID ${item?.id} 'İçeride' durumunda ancak Giriş Zamanı NULL/boş!`);
+          console.warn(`Veritabanı Hatası: Kayıt ID ${item?.id} 'Mesaisi Devam Ediyor' durumunda ancak Giriş Zamanı NULL/boş!`);
           entryTimeText = '<span class="text-rose-500 font-semibold">Giriş Yok (Veritabanı Hatası)</span>';
         }
       } else {
@@ -110,7 +110,7 @@ export class AttendanceTableWidget {
           statusText = 'Gecikmeli';
         } else {
           badgeStyle = 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/20';
-          statusText = 'Dışarıda';
+          statusText = 'Mesai Bitti';
         }
       }
 

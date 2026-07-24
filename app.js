@@ -11,6 +11,8 @@ import { LogsScreen } from './presentation/screens/LogsScreen.js';
 import { ReportsScreen } from './presentation/screens/ReportsScreen.js';
 import { OvertimeScreen } from './presentation/screens/OvertimeScreen.js';
 import { LeaveScreen } from './presentation/screens/LeaveScreen.js';
+import { AnnouncementsScreen } from './presentation/screens/AnnouncementsScreen.js';
+import { AuditLogsScreen } from './presentation/screens/AuditLogsScreen.js';
 
 // Central Repository Layer instantiation for Clean Architecture
 const apiService = new ApiService();
@@ -42,7 +44,9 @@ class App {
       logs: new LogsScreen(this.personnelRepository),
       overtime: new OvertimeScreen(this.personnelRepository),
       leave: new LeaveScreen(this.personnelRepository),
-      raporlar: new ReportsScreen()
+      duyurular: new AnnouncementsScreen(this.apiService),
+      auditlogs: new AuditLogsScreen(this.apiService),
+      raporlar: new ReportsScreen(this.personnelRepository, this.apiService)
     };
 
     this.activeTab = 'dashboard';
@@ -56,6 +60,13 @@ class App {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
+        const normalizedRole = (user?.role || '').toLowerCase();
+        
+        // Login Guard: Block standard 'User' role on initialization
+        if (normalizedRole === 'user' || (!normalizedRole.includes('admin') && !normalizedRole.includes('manager'))) {
+          this.handleLogout();
+          return;
+        }
         
         // Show App layout, hide Login layout
         document.getElementById('login-layout').classList.add('hidden');
@@ -64,8 +75,9 @@ class App {
         // Populate profile name & avatar elements
         this.updateProfileUI(user);
         
-        // Initialize Header components (themes, notifications)
+        // Initialize Header & Sidebar components (themes, notifications, collapsible sidebar)
         this.header.init();
+        this.sidebar.init();
         
         // Setup Global Navigate tab listener
         window.addEventListener('navigateToTab', (e) => {
@@ -74,8 +86,31 @@ class App {
           }
         });
 
-        // Render initial screen (Dashboard)
-        await this.switchTab('dashboard');
+        // Setup Browser Back / Forward button navigation (popstate)
+        window.addEventListener('popstate', (e) => {
+          let targetTab = 'dashboard';
+          if (e.state && e.state.tab) {
+            targetTab = e.state.tab;
+          } else if (window.location.hash) {
+            targetTab = window.location.hash.replace('#', '');
+          }
+          
+          if (this.screens[targetTab]) {
+            this.switchTab(targetTab, false);
+          } else {
+            this.switchTab('dashboard', false);
+          }
+        });
+
+        // Determine initial screen from URL hash or default to 'dashboard'
+        let initialTab = 'dashboard';
+        const currentHash = window.location.hash ? window.location.hash.replace('#', '') : '';
+        if (currentHash && this.screens[currentHash]) {
+          initialTab = currentHash;
+        }
+
+        history.replaceState({ tab: initialTab }, '', `#${initialTab}`);
+        await this.switchTab(initialTab, false);
         
       } catch (err) {
         this.handleLogout();
@@ -96,7 +131,7 @@ class App {
   }
 
   /**
-   * Handles user authentication POST submission
+   * Handles user authentication POST submission with Login Guard
    */
   async handleLogin(e) {
     e.preventDefault();
@@ -112,20 +147,32 @@ class App {
     }
 
     try {
-      const res = await this.apiService.post('/api/auth/login', { email, passwordHash: password });
+      const res = await this.apiService.post('/api/auth/login-web', { email, passwordHash: password });
       
       if (res.success && res.data) {
-        localStorage.setItem('currentUser', JSON.stringify(res.data));
+        const user = res.data;
+        const normalizedRole = (user?.role || '').toLowerCase();
+
+        // Login Guard: Block standard 'User' role from entering panel
+        if (normalizedRole === 'user' || (!normalizedRole.includes('admin') && !normalizedRole.includes('manager'))) {
+          if (errorAlert) {
+            errorAlert.textContent = 'Bu panele sadece Yöneticiler giriş yapabilir.';
+            errorAlert.classList.remove('hidden');
+          }
+          return;
+        }
+
+        localStorage.setItem('currentUser', JSON.stringify(user));
         
         document.getElementById('login-layout').classList.add('hidden');
         document.getElementById('app-layout').classList.remove('hidden');
         
-        this.updateProfileUI(res.data);
+        this.updateProfileUI(user);
         this.header.init();
         await this.switchTab('dashboard');
         
         if (typeof window.showToast === 'function') {
-          window.showToast(`Hoş geldiniz, ${res.data.fullName}!`, 'success');
+          window.showToast(`Hoş geldiniz, ${user.fullName}!`, 'success');
         }
       } else {
         if (errorAlert) {
@@ -161,7 +208,14 @@ class App {
     if (!user) return;
     
     const initials = this.getInitials(user.fullName);
-    const roleName = user.role === 'Admin' ? 'Sistem Yöneticisi' : 'Departman Müdürü';
+    const normalizedRole = (user?.role || '').toLowerCase();
+    
+    let roleTitle = 'Yönetici';
+    if (normalizedRole.includes('admin')) {
+      roleTitle = 'Sistem Yöneticisi';
+    } else if (normalizedRole.includes('manager') || normalizedRole.includes('müdür')) {
+      roleTitle = 'Departman Müdürü';
+    }
     
     const sidebarAvatar = document.getElementById('sidebar-avatar');
     const sidebarFullName = document.getElementById('sidebar-fullname');
@@ -169,7 +223,7 @@ class App {
     
     if (sidebarAvatar) sidebarAvatar.textContent = initials;
     if (sidebarFullName) sidebarFullName.textContent = user.fullName;
-    if (sidebarRole) sidebarRole.textContent = roleName;
+    if (sidebarRole) sidebarRole.textContent = roleTitle;
     
     const mobAvatar = document.getElementById('mob-sidebar-avatar');
     const mobFullName = document.getElementById('mob-sidebar-fullname');
@@ -177,7 +231,7 @@ class App {
     
     if (mobAvatar) mobAvatar.textContent = initials;
     if (mobFullName) mobFullName.textContent = user.fullName;
-    if (mobRole) mobRole.textContent = roleName;
+    if (mobRole) mobRole.textContent = roleTitle;
     
     const headerAvatar = document.getElementById('header-avatar');
     const dropdownFullName = document.getElementById('dropdown-fullname');
@@ -196,12 +250,25 @@ class App {
   }
 
   /**
-   * Switch the active screen / tab
+   * Switch the active screen / tab with browser history support
    * @param {string} tabId 
+   * @param {boolean} pushToHistory - whether to update history state
    */
-  async switchTab(tabId) {
+  async switchTab(tabId, pushToHistory = true) {
+    if (!this.screens[tabId]) {
+      tabId = 'dashboard';
+    }
+
     this.activeTab = tabId;
     
+    // Update browser history state and URL hash (#tabId)
+    if (pushToHistory) {
+      const hash = `#${tabId}`;
+      if (window.location.hash !== hash) {
+        history.pushState({ tab: tabId }, '', hash);
+      }
+    }
+
     // Update sidebar navigation indicators
     this.sidebar.setActiveTab(tabId);
     
@@ -217,64 +284,207 @@ class App {
   }
 
   /**
-   * Add new employee submit form
+   * Helper to retrieve currently logged in user object
+   */
+  getCurrentUser() {
+    try {
+      const userStr = localStorage.getItem('currentUser');
+      if (userStr) return JSON.parse(userStr);
+    } catch (e) {
+      console.warn('Current user parsing failed:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Handle Role Selection change inside Add Employee modal
+   */
+  async handleRoleChange(role) {
+    const currentUser = this.getCurrentUser();
+    const isManager = (currentUser?.role || '').toLowerCase() === 'manager';
+
+    const roleSelect = document.getElementById('emp-role');
+    const roleLockBadge = document.getElementById('role-lock-badge');
+    const managerFields = document.getElementById('conditional-manager-fields');
+    const authFields = document.getElementById('conditional-auth-fields');
+    const emailInput = document.getElementById('emp-email');
+    const passwordInput = document.getElementById('emp-password');
+
+    // If Manager is logged in, force role to User and lock dropdown visually
+    if (isManager) {
+      if (roleSelect) {
+        roleSelect.value = 'User';
+        roleSelect.disabled = true;
+        roleSelect.classList.add('cursor-not-allowed', 'opacity-70', 'bg-slate-100', 'dark:bg-slate-800/80');
+      }
+      if (roleLockBadge) {
+        roleLockBadge.classList.remove('hidden');
+        roleLockBadge.classList.add('flex');
+      }
+      if (managerFields) managerFields.classList.add('hidden');
+      if (authFields) authFields.classList.add('hidden');
+      if (emailInput) emailInput.required = false;
+      if (passwordInput) passwordInput.required = false;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    // Admin user handling: unlock selection
+    if (roleSelect) {
+      roleSelect.disabled = false;
+      roleSelect.classList.remove('cursor-not-allowed', 'opacity-70', 'bg-slate-100', 'dark:bg-slate-800/80');
+    }
+    if (roleLockBadge) {
+      roleLockBadge.classList.add('hidden');
+      roleLockBadge.classList.remove('flex');
+    }
+
+    if (role === 'Manager' || role === 'Admin') {
+      if (authFields) authFields.classList.remove('hidden');
+      if (managerFields) managerFields.classList.add('hidden');
+      if (emailInput) emailInput.required = true;
+      if (passwordInput) passwordInput.required = true;
+    } else {
+      // Default: 'User'
+      if (authFields) authFields.classList.add('hidden');
+      if (managerFields) managerFields.classList.remove('hidden');
+      if (emailInput) {
+        emailInput.required = false;
+        emailInput.value = '';
+      }
+      if (passwordInput) {
+        passwordInput.required = false;
+        passwordInput.value = '';
+      }
+      await this.loadManagersDropdown();
+    }
+  }
+
+  /**
+   * Fetch managers list and populate Manager select dropdown
+   */
+  async loadManagersDropdown() {
+    const select = document.getElementById('emp-manager-id');
+    if (!select) return;
+
+    try {
+      const managers = await this.personnelRepository.getManagers();
+      select.innerHTML = '<option value="">Yönetici Seçiniz (İsteğe Bağlı)</option>';
+      if (Array.isArray(managers) && managers.length > 0) {
+        managers.forEach(m => {
+          select.innerHTML += `<option value="${m.id}">${m.fullName || m.fullName} (${m.department || 'Yönetici'})</option>`;
+        });
+      }
+    } catch (e) {
+      console.warn('Yöneticiler yüklenemedi:', e);
+    }
+  }
+
+  /**
+   * Add new employee submit form with RBAC security & C# backend model structure
    */
   async handleNewEmployeeSubmit(e) {
     e.preventDefault();
-    const name = document.getElementById('emp-fullname').value;
-    const dept = document.getElementById('emp-dept').value;
-    const role = document.getElementById('emp-role').value;
+    const currentUser = this.getCurrentUser();
+    const isManager = (currentUser?.role || '').toLowerCase() === 'manager';
 
-    const data = {
-      fullName: name,
-      department: dept,
-      role: role,
-      status: 'Aktif'
+    const fullName = document.getElementById('emp-fullname').value.trim();
+    const department = document.getElementById('emp-dept').value;
+    const roleSelect = document.getElementById('emp-role');
+    const role = isManager ? 'User' : (roleSelect?.value || 'User');
+    
+    const email = document.getElementById('emp-email')?.value.trim();
+    const password = document.getElementById('emp-password')?.value.trim();
+    const selectedManagerId = document.getElementById('emp-manager-id')?.value;
+
+    // RBAC Security: Manager automatically becomes the new User's manager (currentUser.id)
+    const managerId = isManager
+      ? (currentUser?.id || null)
+      : (role === 'User' && selectedManagerId ? selectedManagerId : null);
+
+    const payload = {
+      FullName: fullName,
+      Role: role,
+      Department: department,
+      Email: (role === 'User') ? null : (email || null),
+      PasswordHash: (role === 'User') ? null : (password || null),
+      ManagerId: managerId
     };
 
-    // Close Modal
-    this.toggleAddEmployeeModal();
+    const submitBtn = document.getElementById('btn-submit-employee');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Kaydediliyor...';
+    }
 
     try {
-      // Execute Add Use Case
-      const addedPersonnel = await this.addPersonnelUseCase.execute(data);
+      // Send directly to API / Repository
+      const res = await this.apiService.post('/api/personnel', payload);
       
-      // Inject alert notification into Header UI
-      this.header.addNotification({
-        title: 'Yeni personel kaydı',
-        desc: `${addedPersonnel.fullName} sisteme eklendi.`,
-        type: 'info'
-      });
+      if (res.success || res.status === 200 || res.status === 201) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(`${fullName} sisteme eklendi.`, 'success');
+        }
 
-      // Refresh current screen if visible
-      if (this.activeTab === 'personeller') {
-        await this.screens.personeller.loadEmployees();
-      } else if (this.activeTab === 'dashboard') {
-        await this.screens.dashboard.refreshData();
+        this.header.addNotification({
+          title: 'Yeni personel kaydı',
+          desc: `${fullName} sisteme eklendi.`,
+          type: 'info'
+        });
+
+        // Close Modal & Reset Form
+        await this.toggleAddEmployeeModal();
+        document.getElementById('add-employee-form').reset();
+
+        // Refresh active screen
+        if (this.activeTab === 'personeller') {
+          await this.screens.personeller.loadEmployees();
+        } else if (this.activeTab === 'dashboard') {
+          await this.screens.dashboard.refreshData();
+        }
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast(res.error || 'Personel eklenemedi.', 'error');
+        }
       }
 
     } catch (err) {
       if (typeof window.showToast === 'function') {
-        window.showToast(err.message, 'error');
+        window.showToast(err.message || 'Sunucu hatası oluştu.', 'error');
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Kaydet';
       }
     }
-
-    // Reset Form
-    document.getElementById('add-employee-form').reset();
   }
 
   /**
-   * Modal Open/Close Toggler
+   * Modal Open/Close Toggler with RBAC role initialization
    */
-  toggleAddEmployeeModal() {
+  async toggleAddEmployeeModal() {
     const modal = document.getElementById('add-employee-modal');
     if (!modal) return;
     modal.classList.toggle('hidden');
     if (!modal.classList.contains('hidden')) {
+      const currentUser = this.getCurrentUser();
+      const isManager = (currentUser?.role || '').toLowerCase() === 'manager';
+      const roleSelect = document.getElementById('emp-role');
+
+      if (isManager && roleSelect) {
+        roleSelect.value = 'User';
+        roleSelect.disabled = true;
+      } else if (roleSelect) {
+        roleSelect.disabled = false;
+      }
+
+      await this.handleRoleChange(roleSelect?.value || 'User');
       const input = document.getElementById('emp-fullname');
       if (input) input.focus();
     }
   }
+
 }
 
 // Instantiate and bind to window for document markup access
@@ -289,7 +499,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.toggleProfileDropdown = () => app.header.toggleProfileDropdown();
   window.markAllNotificationsRead = () => app.header.markAllAsRead();
   window.toggleMobileSidebar = () => app.sidebar.toggleMobileSidebar();
+  window.toggleSidebarCollapse = () => app.sidebar.toggleCollapse();
   window.handleNewEmployeeSubmit = (e) => app.handleNewEmployeeSubmit(e);
   window.toggleAddEmployeeModal = () => app.toggleAddEmployeeModal();
+  window.handleRoleChange = (role) => app.handleRoleChange(role);
   window.handleLogout = () => app.handleLogout();
 });

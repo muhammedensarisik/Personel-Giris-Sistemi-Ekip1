@@ -23,10 +23,10 @@ export class AttendanceFilterWidget {
             Hepsi
           </button>
           <button id="tab-inside" class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-            İçeridekiler
+            Aktif Mesai
           </button>
           <button id="tab-outside" class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-            Dışarıdakiler
+            Mesaisi Bitenler
           </button>
         </div>
 

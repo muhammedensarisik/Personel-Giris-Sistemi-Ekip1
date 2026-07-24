@@ -18,7 +18,7 @@ export class PersonnelRepository {
    * Fetch all personnel from backend API
    */
   async getAll() {
-    const res = await this.api.get('/api/personnel');
+    const res = await this.api.getPersonnel();
     if (res.success && Array.isArray(res.data)) {
       this.activeEmployees = res.data.map(p => new Personnel(p));
       return this.activeEmployees;
@@ -26,6 +26,17 @@ export class PersonnelRepository {
       console.error('Personnel API connection failed.');
       return [];
     }
+  }
+
+  /**
+   * Fetch managers list from backend API
+   */
+  async getManagers() {
+    const res = await this.api.getManagers();
+    if (res.success && Array.isArray(res.data)) {
+      return res.data;
+    }
+    return [];
   }
 
   /**
