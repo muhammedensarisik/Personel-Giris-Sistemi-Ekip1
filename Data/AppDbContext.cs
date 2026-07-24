@@ -12,6 +12,8 @@ public class AppDbContext : DbContext
     public DbSet<Location> Locations { get; set; }
     public DbSet<OvertimeRecord> OvertimeRecords { get; set; }
     public DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<Announcement> Announcements { get; set; } 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,5 +21,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Attendance>().ToTable("attendance");
         modelBuilder.Entity<OvertimeRecord>().ToTable("overtime_records");
         modelBuilder.Entity<LeaveRequest>().ToTable("leave_requests");
+        modelBuilder.Entity<AuditLog>().ToTable("audit_logs");
+        modelBuilder.Entity<Announcement>().ToTable("announcements");
     }
 }

@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Repositories;
 using backend.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace backend.Controllers;
 
@@ -22,12 +26,22 @@ public class LeaveRequestController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    public async Task<IActionResult> UpdateStatus(int id, [FromQuery] string status)
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateLeaveStatusDto request)
     {
-        var result = await _repo.UpdateStatusAsync(id, status);
+        var result = await _repo.UpdateStatusAsync(id, request.Status, request.AdminNote);
         if (!result) return NotFound(new { message = "İzin talebi bulunamadı." });
         
         return Ok(new { message = "İzin durumu başarıyla güncellendi." });
+    }
+
+    // YENİ EKLENDİ: Geri Alma (Undo) Endpoint'i
+    [HttpPut("{id}/undo")]
+    public async Task<IActionResult> UndoStatus(int id)
+    {
+        var result = await _repo.UndoStatusAsync(id);
+        if (!result) return NotFound(new { message = "İzin talebi bulunamadı." });
+        
+        return Ok(new { message = "İzin talebi başarıyla geri alındı (Pending konumuna çekildi)." });
     }
 
     [HttpDelete("{id}")]
@@ -39,7 +53,6 @@ public class LeaveRequestController : ControllerBase
         return Ok(new { message = "İzin talebi silindi." });
     }
 
-    // DOĞRU OLAN BURASI: Controller sadece repoyu çağırır, _context kullanmaz.
     [HttpGet("manager/{managerId}")]
     public async Task<IActionResult> GetByManager(Guid managerId)
     {
@@ -49,4 +62,10 @@ public class LeaveRequestController : ControllerBase
 
         return Ok(data);
     }
+}
+
+public class UpdateLeaveStatusDto
+{
+    public string Status { get; set; } = string.Empty;
+    public string? AdminNote { get; set; }
 }

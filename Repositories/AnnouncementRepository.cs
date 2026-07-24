@@ -1,6 +1,10 @@
 using backend.Data;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace backend.Repositories;
 
@@ -20,6 +24,7 @@ public class AnnouncementRepository
             .Select(p => p.Id)
             .ToListAsync();
 
+        // AppDbContext içindeki DbSet ismi muhtemelen 'announcements' (küçük harfle)
         var query = _context.Announcements.AsQueryable();
 
         if (requesterRole == "Manager")
@@ -55,16 +60,15 @@ public class AnnouncementRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id)
     {
         var announcement = await _context.Announcements.FindAsync(id);
-        if (announcement != null)
-        {
-            _context.Announcements.Remove(announcement);
-            await _context.SaveChangesAsync();
-        }
-    }
+        if (announcement == null) return false;
 
+        _context.Announcements.Remove(announcement);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }
 
 public class AnnouncementDto

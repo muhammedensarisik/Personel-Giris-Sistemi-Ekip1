@@ -5,7 +5,6 @@ using System.Linq;
 
 namespace backend.Controllers
 {
-    [Route("api/[controller]")]
     [Route("api/auditlogs")]
     [ApiController]
     public class AuditLogController : ControllerBase

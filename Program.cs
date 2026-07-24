@@ -11,11 +11,16 @@ builder.Services.AddControllers(); // Controller'ları sisteme tanıttık
 // Veritabanı ve Repository bağlantıları
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-    builder.Services.AddScoped<PersonnelRepository>();
-builder.Services.AddScoped<AttendanceRepository>(); 
-builder.Services.AddScoped<OvertimeRepository>();
-
+builder.Services.AddScoped<DashboardRepository>();
+builder.Services.AddScoped<AuthRepository>();
+builder.Services.AddScoped<PersonnelRepository>();
+builder.Services.AddScoped<AuditLogRepository>();
+builder.Services.AddScoped<AnnouncementRepository>();
+builder.Services.AddScoped<AttendanceRepository>();
 builder.Services.AddScoped<LeaveRequestRepository>();
+builder.Services.AddScoped<OvertimeRepository>();
+builder.Services.AddScoped<ReportRepository>();
+
 
 builder.Services.AddCors(options =>
 {

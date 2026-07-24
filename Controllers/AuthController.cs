@@ -1,7 +1,8 @@
-using backend.Data;
 using backend.Models;
+using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using System;
 
 namespace backend.Controllers;
 
@@ -9,32 +10,43 @@ namespace backend.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly AuthRepository _repo;
 
-    public AuthController(AppDbContext context)
+    public AuthController(AuthRepository repo)
     {
-        _context = context;
+        _repo = repo;
     }
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    // ==========================================
+    // 1. WEB PANEL GİRİŞİ (Sadece Admin/Manager)
+    // ==========================================
+    [HttpPost("login-web")]
+    public async Task<IActionResult> LoginWeb([FromBody] LoginRequest request)
     {
-        Console.WriteLine($"Gelen Email: {request.Email}, Gelen Şifre: {request.PasswordHash}");
+        var user = await _repo.AuthenticateUserAsync(request.Email, request.PasswordHash);
 
-        var user = await _context.profiles
-            .FirstOrDefaultAsync(p => p.Email == request.Email && p.PasswordHash == request.PasswordHash);
+        if (user == null || (user.Role != "Admin" && user.Role != "Manager")) 
+        {
+            return Unauthorized(new { message = "Böyle bir kullanıcı bulunamadı veya yetkisiz erişim." });
+        }
 
-        if (user == null) 
-            return Unauthorized(new { message = "E-posta veya şifre hatalı!" });
+        return Ok(new { id = user.Id, fullName = user.FullName, role = user.Role, managerId = user.ManagerId });
+    }
 
-        return Ok(new { 
-            id = user.Id, 
-            fullName = user.FullName, 
-            role = user.Role,
-            managerId = user.ManagerId // Frontend'in filtreleme yapması için bunu da gönderiyoruz
-        });
+    // ==========================================
+    // 2. MOBİL UYGULAMA GİRİŞİ (Sadece User)
+    // ==========================================
+    [HttpPost("login-mobile")]
+    public async Task<IActionResult> LoginMobile([FromBody] LoginRequest request)
+    {
+        var user = await _repo.AuthenticateUserAsync(request.Email, request.PasswordHash);
 
-        
+        if (user == null || user.Role != "User") 
+        {
+            return Unauthorized(new { message = "Böyle bir kullanıcı bulunamadı veya hatalı şifre." });
+        }
+
+        return Ok(new { id = user.Id, fullName = user.FullName, role = user.Role, managerId = user.ManagerId });
     }
 }
 

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models;
@@ -22,6 +23,12 @@ public class LeaveRequest
 
     [Column("status")]
     public string Status { get; set; } = "Pending";
+
+    [Column("admin_note")]
+    public string? AdminNote { get; set; }
+
+    [Column("approved_by")]
+    public Guid? ApprovedBy { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
