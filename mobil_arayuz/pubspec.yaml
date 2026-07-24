@@ -1,0 +1,31 @@
+name: mobil_arayuz
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  intl: ^0.20.3
+  provider: ^6.1.5+1
+  mobile_scanner: ^7.2.0
+  shared_preferences: ^2.5.5
+  dio: ^5.10.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  
+  flutter_lints: ^6.0.0
+
+flutter:
+
+  
+  uses-material-design: true
