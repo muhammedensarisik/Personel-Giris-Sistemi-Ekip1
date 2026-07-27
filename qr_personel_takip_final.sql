@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict 78OogfTm7fcQYRZ1Wyja6r5mVnvMcdFTbbCVop3yBwHx15Iv02qGiKE0YgSbgdP
+\restrict HmD6hTqFdTmZSDNT1iIi2A3CcS1S3yLrmTe3XiAKnHX0mHdvZay69zCrjpofWV9
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
 
--- Started on 2026-07-13 14:11:46
+-- Started on 2026-07-27 09:04:56
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -608,11 +608,11 @@ ALTER TABLE ONLY public.overtime_records
     ADD CONSTRAINT fk_overtime_user FOREIGN KEY (user_id) REFERENCES public.profiles(id);
 
 
--- Completed on 2026-07-13 14:11:46
+-- Completed on 2026-07-27 09:04:57
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 78OogfTm7fcQYRZ1Wyja6r5mVnvMcdFTbbCVop3yBwHx15Iv02qGiKE0YgSbgdP
+\unrestrict HmD6hTqFdTmZSDNT1iIi2A3CcS1S3yLrmTe3XiAKnHX0mHdvZay69zCrjpofWV9
 
