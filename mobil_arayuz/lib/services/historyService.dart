@@ -1,20 +1,38 @@
+import 'package:dio/dio.dart'; // Options sınıfı için bu import şart
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobil_arayuz/services/api_service.dart';
 import 'package:mobil_arayuz/model/history_model.dart';
 
 class HistoryService {
-  // Backend hazır olunca burayı 'http.get' ile değiştireceksin.
   Future<List<HistoryModel>> fetchHistory() async {
-    // API gecikmesini simüle ediyoruz
-    await Future.delayed(const Duration(seconds: 1)); 
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('userId');
+      final String? userRole = prefs.getString('userRole') ?? 'User'; // Rolü de çektik
 
-    return [
-      HistoryModel(date: "01.07.2026", checkIn: "08:30", checkOut: "17:30", status: "Tamamlandı"),
-      HistoryModel(date: "30.06.2026", checkIn: "08:45", checkOut: "17:45", status: "Tamamlandı"),
-      HistoryModel(date: "29.06.2026", checkIn: "09:00", checkOut: "17:00", status: "Eksik"),
-      HistoryModel(date: "28.06.2026", checkIn: "08:15", checkOut: "17:15", status: "Tamamlandı"),
-      HistoryModel(date: "27.06.2026", checkIn: "08:30", checkOut: "17:30", status: "Tamamlandı"),
-      HistoryModel(date: "26.06.2026", checkIn: "08:45", checkOut: "17:45", status: "Tamamlandı"),
-      HistoryModel(date: "25.06.2026", checkIn: "09:00", checkOut: "17:00", status: "Eksik"),
-      HistoryModel(date: "24.06.2026    ", checkIn: "08:15", checkOut: "17:15", status: "Tamamlandı"),
-    ];
+      if (userId == null) {
+        throw Exception("Kullanıcı oturumu bulunamadı."); 
+      }
+
+      // İŞTE EKSİK OLAN KISIM: Header'ları gönderiyoruz
+      final response = await ApiService().dio.get(
+        '/attendance/my-history/$userId',
+        options: Options(
+          headers: {
+            'X-User-Id': userId,
+            'X-User-Role': userRole,
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => HistoryModel.fromJson(json)).toList();
+      } else {
+        throw Exception("Sunucudan beklenmeyen bir yanıt geldi. Kod: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Geçmiş çekilirken hata oluştu: $e");
+    }
   }
 }

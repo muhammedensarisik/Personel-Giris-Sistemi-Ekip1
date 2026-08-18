@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobil_arayuz/components/app_base_card.dart';
+import 'package:mobil_arayuz/screens/gecmis/widgets/HistoryDetailSheet.dart';
 import '../../../model/history_model.dart';
 
 class HistoryCard extends StatelessWidget {
@@ -7,73 +9,73 @@ class HistoryCard extends StatelessWidget {
   const HistoryCard({super.key, required this.item});
 
   @override
-Widget build(BuildContext context) {
-  final isCompleted = item.status == "Tamamlandı";
-  final statusColor = isCompleted ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+  Widget build(BuildContext context) {
+    // Tema modunu AppBaseCard için yakalıyoruz
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  return Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: statusColor.withAlpha(20), // Arka plan yumuşak renk
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: statusColor.withAlpha(50), width: 1), // İnce şık bir kenarlık
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withAlpha(10),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
+    // 1. C#'tan Gelen Veriyi Türkçeleştirme ve Renklendirme Mantığı
+    String localizedStatus = "Bilinmiyor";
+    Color statusColor = Colors.grey;
+    IconData statusIcon = Icons.help_outline;
+
+    final String rawStatus = item.status.toLowerCase();
+
+    if (item.checkOut == "--:--") {
+      localizedStatus = "Mesai Devam Ediyor";
+      statusColor = Colors.blue.shade600;
+      statusIcon = Icons.sync;
+    } else if (rawStatus == "ontime" || rawStatus == "tamamlandı") {
+      localizedStatus = "Zamanında Geldi";
+      statusColor = const Color(0xFF2E7D32); // Koyu Yeşil
+      statusIcon = Icons.check_circle;
+    } else if (rawStatus == "late" || rawStatus == "eksik") {
+      localizedStatus = "Geç Kaldı";
+      statusColor = const Color(0xFFC62828); // Kırmızı
+      statusIcon = Icons.warning_amber_rounded;
+    }
+
+    // 2. Süre Hesaplaması (Dk'yı Saat ve Dk'ya çeviriyoruz)
+    final int hours = item.duration ~/ 60;
+    final int minutes = item.duration % 60;
+    final String durationText = hours > 0 ? "$hours sa $minutes dk" : "$minutes dk";
+
+    // 3. Ortak Şablonu Çağırıyoruz
+    return AppBaseCard(
+      isDark: isDark,
+      badgeColor: statusColor,
+      badgeText: localizedStatus,
+      
+      // Sol taraftaki Durum İkonu (Yuvarlak kare içinde)
+      leadingIcon: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: statusColor.withValues(alpha: 0.15), 
+          borderRadius: BorderRadius.circular(12),
         ),
-      ],
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Sol ikon kısmı
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(200), 
-            borderRadius: BorderRadius.circular(12),
+        child: Icon(statusIcon, color: statusColor, size: 24),
+      ),
+      
+      // Ana başlık: Tarih
+      title: item.date,
+      
+      // Alt Bilgi: Giriş Çıkış Saati ve Toplam Süre yan yana
+      subtitle: "${item.checkIn} - ${item.checkOut}  •  $durationText",
+      
+      // Tıklanma Olayı: Detay Sayfası
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => HistoryDetailSheet(
+            item: item,
+            localizedStatus: localizedStatus,
+            statusColor: statusColor,
+            statusIcon: statusIcon,
+            durationText: durationText,
           ),
-          child: Icon(Icons.calendar_today, color: statusColor, size: 20),
-        ),
-        const SizedBox(width: 14),
-        // Bilgi kısmı
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.date,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "${item.checkIn} - ${item.checkOut}",
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
-              ),
-            ],
-          ),
-        ),
-        // Durum (Badge) kısmı
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor, // Badge'i tam renk yapıyoruz ki göze çarpsın
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            item.status,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+        );
+      },
+    );
+  }
 }

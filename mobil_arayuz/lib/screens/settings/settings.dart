@@ -17,7 +17,6 @@ class SettingsPage extends StatelessWidget {
       ),
       // 1. body'yi doğrudan SingleChildScrollView ile sarmala
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, // Başlıkları sola yasladık
@@ -49,8 +48,8 @@ class SettingsPage extends StatelessWidget {
                   if (context.mounted) {
                     Navigator.pushNamedAndRemoveUntil(
                       context, 
-                      '/login', // Veya rota ismin neyse (örn: '/auth' ya da LoginPage())
-                      (route) => false, // Bütün önceki sayfa geçmişini siler!
+                      '/login',
+                      (route) => false,
                     );
                   }
                 },

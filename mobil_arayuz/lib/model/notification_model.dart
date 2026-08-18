@@ -1,27 +1,34 @@
 class NotificationModel {
+  final int id;
   final String title;
-  final String message;
-  final DateTime timestamp;
+  final String content;       
+  final String priority;      
+  final String authorName;    
+  final String authorRole;    
+  final DateTime createdAt;   
 
-  const NotificationModel({
+  NotificationModel({
+    required this.id,
     required this.title,
-    required this.message,
-    required this.timestamp,
+    required this.content,
+    required this.priority,
+    required this.authorName,
+    required this.authorRole,
+    required this.createdAt,
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      title: json["title"],
-      message: json["message"],
-      timestamp: DateTime.parse(json["timestamp"]),
+      id: json['id'] ?? 0,
+      title: json['title'] ?? 'Başlıksız',
+      content: json['content'] ?? '',
+      priority: json['priority'] ?? 'Düşük',
+      authorName: json['authorName'] ?? 'Sistem',
+      authorRole: json['authorRole'] ?? 'Sistem',
+      // C#'tan gelen tarihi Dart'ın anlayacağı DateTime formatına çeviriyoruz
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : DateTime.now(),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      "title": title,
-      "message": message,
-      "timestamp": timestamp.toIso8601String(),
-    };
   }
 }

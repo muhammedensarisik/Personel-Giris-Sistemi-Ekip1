@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 
 class QuickActionButton extends StatelessWidget {
   final String label;
+  final String? subtitle; // Artık alt başlık da verebileceğiz
   final IconData icon;
-  final Color color; // Bu dışarıdan gelen vurgu rengi kalıyor (Örn: İkon için özel mavi)
+  final Color color; 
   final VoidCallback onTap;
 
   const QuickActionButton({
     super.key,
     required this.label,
+    this.subtitle,
     required this.icon,
     required this.color,
     required this.onTap,
@@ -16,53 +18,70 @@ class QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Temayı context üzerinden yakalıyoruz
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(16),
-          // 3. Sabit gri yerine temanın sınır/ayırıcı rengi
           border: Border.all(
-            color: theme.dividerColor.withValues(alpha: isDark ? 0.2 : 0.4),
+            // Gündüz ve gece moduna uyumlu çerçeve rengi
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300, 
           ),
-          boxShadow: [
-            BoxShadow(
-              // 4. Koyu modda gölgeyi kapatıyoruz, açık modda hafif bir gölge bırakıyoruz
-              color: theme.shadowColor.withValues(alpha: isDark ? 0.0 : 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Column(
+        child: Row(
           children: [
+            // Sol İkon
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                // 5. withAlpha(26) yerine daha modern olan withOpacity(0.1) kullandık
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: 0.15), // İkonun arkasına kendi renginden çok hafif bir hava kattık (istersen transparent yapabilirsin)
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600, 
-                fontSize: 12, 
-                // 6. Sabit siyah yerine temanın metin rengi (Karanlıkta beyaz, aydınlıkta siyah)
-                color: colorScheme.onSurface,
+              child: Icon(
+                icon, 
+                color: color, 
+                size: 22,
               ),
-              textAlign: TextAlign.center,
+            ),
+            const SizedBox(width: 16),
+            
+            // Orta Metin (Başlık ve Alt Başlık)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  // Eğer subtitle gönderilmişse onu da ekranda çiz
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+            
+            // Sağ Ok (Chevron)
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? Colors.white54 : Colors.black54,
             ),
           ],
         ),

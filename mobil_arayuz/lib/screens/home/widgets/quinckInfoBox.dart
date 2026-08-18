@@ -27,15 +27,14 @@ class QuickInfoBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 12.0),
       decoration: BoxDecoration(
-        // Colors.white yerine temanın kendi yüzey rengi (Açıkta beyaz, koyuda koyu gri)
-        color: colorScheme.surface, 
+        color: Colors.transparent, 
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: theme.dividerColor.withValues(alpha: isDark ? 0.2 : 0.4),
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: isDark ? 0.0 : 0.05),
+            color: theme.shadowColor.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

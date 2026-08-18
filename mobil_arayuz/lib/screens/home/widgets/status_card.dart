@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mobil_arayuz/components/app_base_card.dart';
 import 'package:mobil_arayuz/screens/home/widgets/statusProgressbar.dart';
 
 class StatusCard extends StatefulWidget {
@@ -42,7 +43,8 @@ class _StatusCardState extends State<StatusCard> {
 
   void _startTimerIfNeeded() {
     if (widget.isCheckedIn) {
-      _timer = Timer.periodic(const Duration(seconds: 30), (_) => _updateElapsed());
+      // Sayacı her 1 dakikada bir güncellemek performansı artırır (Saniye göstermiyoruz sonuçta)
+      _timer = Timer.periodic(const Duration(minutes: 1), (_) => _updateElapsed());
     }
   }
 
@@ -57,7 +59,9 @@ class _StatusCardState extends State<StatusCard> {
   String _formatElapsed(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
-    return "${hours}s ${minutes}dk";
+    // Saat 0 ise sadece dakikayı göster, daha temiz durur
+    if (hours == 0) return "$minutes dk";
+    return "$hours sa $minutes dk";
   }
 
   @override
@@ -68,122 +72,102 @@ class _StatusCardState extends State<StatusCard> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. TEMAYI YAKALADIK
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final Color mainColor = widget.isCheckedIn ? Colors.green : Colors.redAccent;
+    // Renkleri biraz daha soft ve modern tonlara çektik
+    final Color mainColor = widget.isCheckedIn ? const Color(0xFF10B981) : const Color(0xFFEF4444);
     final double progress = widget.targetDuration.inSeconds == 0
         ? 0.0
         : _elapsed.inSeconds / widget.targetDuration.inSeconds;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        // 2. GRADIENT AYARI: Koyu moddaysa kendi yüzey rengini, açıktaysa yine kendi yüzeyini alır (Beyazı sildik)
-        gradient: LinearGradient(
-          colors: [mainColor.withOpacity(0.1), colorScheme.surface],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return AppBaseCard(
+      isDark: isDark,
+      badgeColor: mainColor,
+      badgeText: widget.isCheckedIn ? "Aktif" : "Pasif",
+      
+      leadingIcon: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: mainColor.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
         ),
-        border: Border.all(color: mainColor.withOpacity(0.25)),
-        boxShadow: [
-          BoxShadow(
-            // Koyu modda gölgeyi daha yumuşak yapıyoruz ki kirli durmasın
-            color: mainColor.withOpacity(isDark ? 0.05 : 0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        child: Icon(
+          widget.isCheckedIn ? Icons.work_history_rounded : Icons.power_settings_new_rounded,
+          color: mainColor,
+          size: 28,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: mainColor.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    widget.isCheckedIn ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: mainColor,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      
+      title: widget.isCheckedIn ? "Mesai Devam Ediyor" : "Mesai Dışı",
+      subtitle: widget.isCheckedIn 
+          ? "Günlük çalışma süreniz işleniyor" 
+          : "Şu an sistemde aktif değilsiniz",
+      
+      onTap: () {},
+      
+      // KARTIN ALT KISMI (Boş bırakmak yerine her duruma özel tasarım yaptık)
+      bottomChild: Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.black26 : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isCheckedIn 
+                ? mainColor.withValues(alpha: 0.3) 
+                : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+          ),
+        ),
+        child: widget.isCheckedIn && widget.checkInTime != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Bugünkü Durum",
-                        style: TextStyle(
-                          fontSize: 13,
-                          // 3. Sabit Gri yerine temanın metin renginin saydam hali
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.timer_outlined, size: 16, color: mainColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Geçen Süre",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        widget.isCheckedIn ? "Mesai Başlatıldı" : "Mesai Başlatılmadı",
+                        _formatElapsed(_elapsed),
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: mainColor, // Yeşil veya kırmızı renk her iki temada da kalmalı
+                          color: mainColor,
                         ),
                       ),
                     ],
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: mainColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    widget.isCheckedIn ? "Aktif" : "Pasif",
-                    style: const TextStyle(
-                      // Arka planı koyu yeşil/kırmızı olduğu için buradaki beyaz yazı kalabilir!
-                      color: Colors.white, 
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (widget.isCheckedIn && widget.checkInTime != null) ...[
-              const SizedBox(height: 16),
-              Row(
+                  const SizedBox(height: 12),
+                  StatusProgressBar(progress: progress, color: mainColor),
+                ],
+              )
+            : Row(
                 children: [
-                  Icon(Icons.hourglass_bottom_rounded, size: 14, color: mainColor),
-                  const SizedBox(width: 6),
+                  Icon(Icons.qr_code_scanner_rounded, size: 16, color: Colors.grey.shade500),
+                  const SizedBox(width: 8),
                   Text(
-                    "${_formatElapsed(_elapsed)} çalışıyorsun",
+                    "QR kodu okutarak mesaiye başlayın.",
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      // 4. Sabit Koyu Gri yerine temanın belirgin metin rengi
-                      color: colorScheme.onSurface.withOpacity(0.8),
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              StatusProgressBar(progress: progress, color: mainColor),
-            ],
-          ],
-        ),
       ),
     );
   }

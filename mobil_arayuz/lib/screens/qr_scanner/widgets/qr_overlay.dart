@@ -13,7 +13,7 @@ class QrOverlay extends StatelessWidget {
             width: 250,
             height: 250,
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF1565C0), width: 4), // Kurumsal mavi
+              border: Border.all(color: const Color(0xFF1565C0), width: 4), 
               borderRadius: BorderRadius.circular(24),
             ),
             child: Center(

@@ -10,7 +10,7 @@ class AuthService {
   Future<String?> login(String email, String password) async {
     try {
         final response = await _dio.post(
-        '/auth/login-mobile', // SADECE BURAYI DEĞİŞTİRİYORUZ
+        '/auth/login-mobile',
         data: {
           'email': email.trim(),
           'passwordHash': password, 

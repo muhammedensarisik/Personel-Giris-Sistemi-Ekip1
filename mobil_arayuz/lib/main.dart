@@ -9,7 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('tr_TR', null);
   
-  // UYGULAMA AÇILMADAN ÖNCE HAFIZADAKİ TEMAYI YÜKLE
   await loadTheme(); 
   
   runApp(const MyApp());
@@ -20,21 +19,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MaterialApp'i dinleyici ile sarmalıyoruz!
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentThemeMode, child) {
         return MaterialApp(
+          
           title: 'Personel Takip Sistemi',
-          // KENDİ YAZDIĞIN TEMALARI BURAYA BAĞLADIK
           theme: AppTheme.lightTheme, 
           darkTheme: AppTheme.darkTheme,
-          // NOTIFIER'DAN GELEN ANLIK TEMAYI BURAYA VERDİK
-          themeMode: currentThemeMode, 
+          themeMode: currentThemeMode,
           debugShowCheckedModeBanner: false,
           initialRoute: '/login',
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),),
           routes: {
-            '/login': (context) => const MainScreen(),
+            '/login': (context) => const LoginPage(),
             '/main': (context) => const MainScreen(),
           },
         );

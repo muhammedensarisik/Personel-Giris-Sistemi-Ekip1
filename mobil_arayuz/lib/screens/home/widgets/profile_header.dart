@@ -6,7 +6,6 @@ class ProfileHeader extends StatelessWidget {
 
   const ProfileHeader({
     super.key,
-    // Varsayılan değerleri güncelledik
     this.name = "Ramazan Detseli",
     this.department = "Yazılım Stajyeri",
   });
@@ -60,7 +59,6 @@ class ProfileHeader extends StatelessWidget {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  // 4. Sabit mor/mavi yerine temanın ana renklerinden gradient
                   gradient: LinearGradient(
                     colors: [colorScheme.primary, colorScheme.secondary],
                   ),

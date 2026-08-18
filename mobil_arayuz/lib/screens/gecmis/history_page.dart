@@ -30,13 +30,22 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _loadHistory() async {
+    
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
       final data = await _service.fetchHistory();
+
+      if (!mounted) return;
+
       if (mounted) { 
+
+        if (!mounted) return;
+
         setState(() {
           _historyList = data;
           _isLoading = false;
@@ -99,16 +108,13 @@ class _HistoryPageState extends State<HistoryPage> {
     if (_filteredList.isEmpty) {
       return const HistoryEmptyState();
     }
-
     
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return RefreshIndicator(
       onRefresh: _loadHistory,
       child: ListView.builder(
-        // DÜZELTME BURA: bottom değerini 100 + alt alan boşluğu yaptık.
-        // Artık en alttaki kart hiçbir şekilde alt barın altında kalmayacak!
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 100 + bottomPadding),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 10 + bottomPadding),
         itemCount: _filteredList.length,
         itemBuilder: (context, index) => HistoryCard(item: _filteredList[index]),
       ),

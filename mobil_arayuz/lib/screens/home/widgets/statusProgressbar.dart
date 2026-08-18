@@ -18,7 +18,7 @@ class StatusProgressBar extends StatelessWidget {
         value: progress.clamp(0.0, 1.0),
         minHeight: 8,
         // .withAlpha(30) yerine standart olması için .withOpacity kullandık
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha:  0.15),
         valueColor: AlwaysStoppedAnimation<Color>(color),
       ),
     );
