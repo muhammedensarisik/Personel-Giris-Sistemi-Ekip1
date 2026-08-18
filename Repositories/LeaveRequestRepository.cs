@@ -90,4 +90,20 @@ public class LeaveRequestRepository
                 .Any(p => p.Id == lr.UserId && p.ManagerId == managerId))
             .ToListAsync();
     }
+
+    public async Task<bool> CreateAsync(LeaveRequest request)
+    {
+        _context.LeaveRequests.Add(request);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    // MOBİL İÇİN: Sadece giriş yapan kullanıcının taleplerini çeker
+    public async Task<List<LeaveRequest>> GetByUserIdAsync(Guid userId)
+    {
+        return await _context.LeaveRequests
+            .Where(lr => lr.UserId == userId)
+            .OrderByDescending(lr => lr.CreatedAt)
+            .ToListAsync();
+    }
 }

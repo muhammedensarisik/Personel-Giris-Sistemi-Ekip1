@@ -62,10 +62,40 @@ public class LeaveRequestController : ControllerBase
 
         return Ok(data);
     }
-}
 
-public class UpdateLeaveStatusDto
-{
-    public string Status { get; set; } = string.Empty;
-    public string? AdminNote { get; set; }
+
+    // Mobilden yeni izin talebi oluşturma
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateLeaveRequestDto dto)
+    {
+        var request = new LeaveRequest
+        {
+            UserId = dto.UserId,
+            LeaveType = dto.LeaveType,
+            
+            // İŞTE ÇÖZÜM BURADA: PostgreSQL kızmasın diye UTC'ye çeviriyoruz
+            StartDate = dto.StartDate.ToUniversalTime(),
+            EndDate = dto.EndDate.ToUniversalTime(),
+            
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var result = await _repo.CreateAsync(request);
+        if (!result) return BadRequest(new { message = "İzin talebi oluşturulamadı." });
+
+        return Ok(new { message = "İzin talebi başarıyla oluşturuldu." });
+    }
+    
+
+    //Mobil uygulamanın kendi verilerini çektiği endpoint
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetByUserId(Guid userId)
+    {
+        var data = await _repo.GetByUserIdAsync(userId);
+        if (data == null || !data.Any()) 
+            return Ok(new List<LeaveRequest>());
+
+        return Ok(data);
+    }
 }

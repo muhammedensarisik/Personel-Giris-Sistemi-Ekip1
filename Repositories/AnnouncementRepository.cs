@@ -24,7 +24,6 @@ public class AnnouncementRepository
             .Select(p => p.Id)
             .ToListAsync();
 
-        // AppDbContext içindeki DbSet ismi muhtemelen 'announcements' (küçük harfle)
         var query = _context.Announcements.AsQueryable();
 
         if (requesterRole == "Manager")
@@ -60,14 +59,27 @@ public class AnnouncementRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, Guid requesterId, string role)
     {
         var announcement = await _context.Announcements.FindAsync(id);
         if (announcement == null) return false;
 
-        _context.Announcements.Remove(announcement);
-        await _context.SaveChangesAsync();
-        return true;
+        if (role == "Admin")
+        {
+            _context.Announcements.Remove(announcement);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        if (role == "Manager" && announcement.AuthorId == requesterId)
+        {
+            _context.Announcements.Remove(announcement);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // User silemez
+        return false;
     }
 }
 

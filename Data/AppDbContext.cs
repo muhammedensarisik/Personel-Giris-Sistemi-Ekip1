@@ -9,12 +9,14 @@ public class AppDbContext : DbContext
     
     public DbSet<Profile> profiles { get; set; } 
     public DbSet<Attendance> Attendances { get; set; }
-    public DbSet<Location> Locations { get; set; }
+    public DbSet<Location> Locations { get; set; }    
     public DbSet<OvertimeRecord> OvertimeRecords { get; set; }
     public DbSet<LeaveRequest> LeaveRequests { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<Announcement> Announcements { get; set; } 
-
+    
+    public DbSet<Holiday> Holidays { get; set; }
+    public DbSet<SupportTicket> SupportTickets { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Profile>().ToTable("profiles");
@@ -23,5 +25,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LeaveRequest>().ToTable("leave_requests");
         modelBuilder.Entity<AuditLog>().ToTable("audit_logs");
         modelBuilder.Entity<Announcement>().ToTable("announcements");
+        modelBuilder.Entity<Location>().ToTable("locations");
+        modelBuilder.Entity<SupportTicket>().ToTable("supporttickets");
     }
 }

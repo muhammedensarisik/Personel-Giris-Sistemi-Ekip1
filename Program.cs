@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using backend.Repositories;
 using backend.Data;
+using MobilArayuz.API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ builder.Services.AddControllers(); // Controller'ları sisteme tanıttık
 // Veritabanı ve Repository bağlantıları
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddMemoryCache(); 
 builder.Services.AddScoped<DashboardRepository>();
 builder.Services.AddScoped<AuthRepository>();
 builder.Services.AddScoped<PersonnelRepository>();
@@ -20,7 +23,9 @@ builder.Services.AddScoped<AttendanceRepository>();
 builder.Services.AddScoped<LeaveRequestRepository>();
 builder.Services.AddScoped<OvertimeRepository>();
 builder.Services.AddScoped<ReportRepository>();
-
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<LocationRepository>();
+builder.Services.AddScoped<AttendanceRepository>();
 
 builder.Services.AddCors(options =>
 {
@@ -44,7 +49,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors(); //fetch hatası almamak için controllers öncesi usecors kullandım
 
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.MapControllers(); // API endpoint'lerini haritalar
 
 // Örnek hava durumu (istersen silebilirsin)
