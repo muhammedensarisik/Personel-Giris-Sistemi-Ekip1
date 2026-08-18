@@ -36,18 +36,13 @@ export class DashboardScreen {
     if (window.lucide) window.lucide.createIcons();
 
     // 1. Fetch live stats from GET /api/dashboard/stats
-    let stats = { totalEmployees: 0, cameToday: 0, lateToday: 0, onLeaveToday: 0, pendingLeaves: 0 };
+    let stats = { totalPersonnel: 0, activePersonnel: 0, onLeavePersonnel: 0, absentPersonnel: 0, latePersonnel: 0, pendingLeaves: 0 };
     try {
       const statsRes = await this.repo.api.getDashboardStats();
       if (statsRes.success && statsRes.data) {
-        const raw = statsRes.data;
-        stats = {
-          totalEmployees: raw.totalEmployees !== undefined ? raw.totalEmployees : (raw.totalPersonnel || raw.totalCount || 0),
-          cameToday: raw.cameToday !== undefined ? raw.cameToday : (raw.todayPresent || raw.presentCount || 0),
-          lateToday: raw.latePersonnel !== undefined ? raw.latePersonnel : (raw.lateToday !== undefined ? raw.lateToday : 0),
-          onLeaveToday: raw.onLeavePersonnel !== undefined ? raw.onLeavePersonnel : (raw.onLeaveToday !== undefined ? raw.onLeaveToday : 0),
-          pendingLeaves: raw.pendingLeaves !== undefined ? raw.pendingLeaves : 0
-        };
+        stats = statsRes.data;
+      } else if (statsRes && (statsRes.totalPersonnel !== undefined || statsRes.totalEmployees !== undefined)) {
+        stats = statsRes;
       } else {
         stats = await this.repo.getStats();
       }
@@ -55,11 +50,13 @@ export class DashboardScreen {
       stats = await this.repo.getStats();
     }
 
-    // 2. Fetch live recent attendance logs from GET /api/dashboard/recent
+    // 2. Fetch live recent attendance logs from GET /api/attendance/recent
     let recentLogs = [];
     try {
-      const recentRes = await this.repo.api.getDashboardRecent();
-      if (recentRes.success && Array.isArray(recentRes.data)) {
+      const recentRes = await this.repo.api.getAttendanceRecent();
+      if (recentRes && Array.isArray(recentRes.data)) {
+        recentLogs = recentRes.data;
+      } else if (recentRes && recentRes.success && Array.isArray(recentRes.data)) {
         recentLogs = recentRes.data;
       } else if (Array.isArray(recentRes)) {
         recentLogs = recentRes;
@@ -90,9 +87,12 @@ export class DashboardScreen {
     // Get logged in user name dynamically from localStorage
     const userName = this.getLoggedInUserName();
 
+    // Calculate KPI stats directly from raw API data (dumb component architecture)
+    const rawApiStats = this.calculateRawApiStats(stats, employees, recentLogs, pendingLeavesList);
+
     // Default HTML structure for 5 draggable widgets
     const defaultWidgets = {
-      'widget-stats': this.statsWidget.render(stats),
+      'widget-stats': this.statsWidget.render(rawApiStats),
       'widget-recent-logs': this.recentLogsWidget.render(),
       'widget-donut-charts': this.delayStatusWidget.render(),
       'widget-quick-actions': this.quickActionsLeaveWidget.renderQuickActions(),
@@ -157,12 +157,6 @@ export class DashboardScreen {
 
     // Enable HTML5 Drag & Drop reordering
     this.initDraggableWidgets();
-
-    // Click handler for Card 5 (Planlı İzinli Pop-up Modal Trigger)
-    const onLeaveCard = document.getElementById('card-on-leave-stats');
-    if (onLeaveCard) {
-      onLeaveCard.onclick = () => this.openOnLeaveTodayModal();
-    }
 
     // Reset Layout button handler
     const resetLayoutBtn = document.getElementById('btn-reset-dashboard-layout');
@@ -348,6 +342,38 @@ export class DashboardScreen {
   }
 
   /**
+   * Computes KPI statistics directly from raw C# Backend API lists.
+   * Pure presentation (dumb component architecture) without client-side RBAC filtering.
+   */
+  calculateRawApiStats(rawStats, employees = [], recentLogs = [], pendingLeavesList = []) {
+    const totalCount = employees.length || rawStats.totalPersonnel || 0;
+
+    const presentCount = recentLogs.filter(log => {
+      const isInside = !log.checkOut || log.checkOut === '—' || String(log.checkOut).includes('0001-01-01');
+      return isInside || log.status === 'Aktif' || log.status === 'Mevcut';
+    }).length;
+
+    const lateCount = recentLogs.filter(log => log.isLate || log.status === 'Geç Kalan').length;
+    const onLeaveCount = employees.filter(emp => emp.status === 'İzinli' || emp.isOnLeave || emp.status === 'Leave').length;
+    const absentCount = Math.max(0, totalCount - presentCount - onLeaveCount);
+    const pendingLeaveCount = pendingLeavesList.length;
+
+    return {
+      totalPersonnel: totalCount,
+      totalPersonnelSubtitle: 'Kayıtlı Kadro',
+      cameToday: presentCount || rawStats.cameToday || 0,
+      activePersonnel: presentCount || rawStats.activePersonnel || 0,
+      lateToday: lateCount || rawStats.lateToday || 0,
+      latePersonnel: lateCount || rawStats.latePersonnel || 0,
+      absentToday: absentCount || rawStats.absentToday || 0,
+      absentPersonnel: absentCount || rawStats.absentPersonnel || 0,
+      onLeaveToday: onLeaveCount || rawStats.onLeaveToday || 0,
+      onLeavePersonnel: onLeaveCount || rawStats.onLeavePersonnel || 0,
+      pendingLeaves: pendingLeaveCount || rawStats.pendingLeaves || 0
+    };
+  }
+
+  /**
    * Resets layout state and re-renders dashboard in default state
    */
   async resetDashboardLayout(container) {
@@ -477,12 +503,14 @@ export class DashboardScreen {
     if (!tbody) return;
 
     try {
-      const res = await this.repo.api.getOnLeaveToday();
-      let leaves = [];
-      if (res.success && Array.isArray(res.data)) {
-        leaves = res.data;
-      } else if (Array.isArray(res)) {
-        leaves = res;
+      let leaves = await this.repo.getCurrentLeaves();
+      if (!leaves || leaves.length === 0) {
+        const res = await this.repo.api.getOnLeaveToday();
+        if (res.success && Array.isArray(res.data)) {
+          leaves = res.data;
+        } else if (Array.isArray(res)) {
+          leaves = res;
+        }
       }
 
       if (!leaves || leaves.length === 0) {

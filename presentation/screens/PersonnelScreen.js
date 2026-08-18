@@ -5,6 +5,7 @@ import { DeletePersonnelUseCase } from '../../domain/usecases/DeletePersonnelUse
 
 /**
  * PersonnelScreen manages employees UI filters and table listings.
+ * Displays raw employee data returned directly by the C# Backend API (pure presentation / dumb component).
  */
 export class PersonnelScreen {
   constructor(personnelRepository) {
@@ -32,6 +33,10 @@ export class PersonnelScreen {
    * @param {HTMLElement} container 
    */
   async render(container) {
+    // Reset search & department filter state on component mount/render
+    this.searchQuery = '';
+    this.selectedDept = 'all';
+
     container.innerHTML = `
       <!-- Breadcrumb / Header -->
       <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -55,9 +60,15 @@ export class PersonnelScreen {
       </div>
     `;
 
-    // Bind event listeners
+    // Bind event listeners and reset DOM filter inputs
     this.filterWidget.init();
     
+    const searchInput = document.getElementById('search-employees-input');
+    if (searchInput) searchInput.value = '';
+
+    const deptSelect = document.getElementById('select-employees-dept');
+    if (deptSelect) deptSelect.value = 'all';
+
     // Add employee trigger
     const addBtn = document.getElementById('btn-add-emp-screen');
     if (addBtn) {
@@ -72,7 +83,7 @@ export class PersonnelScreen {
       window.lucide.createIcons();
     }
 
-    // Load data
+    // Load data directly from API
     await this.loadEmployees();
   }
 
@@ -91,25 +102,28 @@ export class PersonnelScreen {
     this.applyFilters();
   }
 
+  /**
+   * Pure presentation UI filtering (search query & UI department dropdown only)
+   */
   applyFilters() {
     let filtered = [...this.allEmployees];
 
-    // Search query filter (matches fullName or department)
+    // 1. Search query filter (matches fullName, department, or role)
     if (this.searchQuery.trim() !== '') {
       const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter(e => 
-        e.fullName.toLowerCase().includes(q) || 
-        e.department.toLowerCase().includes(q) ||
-        e.role.toLowerCase().includes(q)
+        (e.fullName && e.fullName.toLowerCase().includes(q)) || 
+        (e.department && e.department.toLowerCase().includes(q)) ||
+        (e.role && e.role.toLowerCase().includes(q))
       );
     }
 
-    // Dropdown department filter
+    // 2. Dropdown department filter
     if (this.selectedDept !== 'all') {
       filtered = filtered.filter(e => e.department === this.selectedDept);
     }
 
-    // Update UI table rows
+    // Update UI table rows directly
     this.tableWidget.update(filtered);
   }
 

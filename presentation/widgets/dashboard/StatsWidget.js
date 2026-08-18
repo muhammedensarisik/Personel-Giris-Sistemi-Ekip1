@@ -3,42 +3,17 @@
  */
 export class StatsWidget {
   /**
-   * Checks if a date falls on a weekend or a static Turkish public holiday
-   * @param {Date} dateObj
-   * @returns {boolean}
-   */
-  isHoliday(dateObj = new Date()) {
-    const day = dateObj.getDay();
-    const month = dateObj.getMonth() + 1;
-    const date = dateObj.getDate();
-
-    if (day === 0 || day === 6) {
-      return true;
-    }
-
-    const mmdd = `${month.toString().padStart(2, '0')}-${date.toString().padStart(2, '0')}`;
-    const publicHolidays = ['01-01', '04-23', '05-01', '05-19', '07-15', '08-30', '10-29'];
-
-    return publicHolidays.includes(mmdd);
-  }
-
-  /**
    * Render compact quick info stats widget
-   * @param {Object} stats - { totalEmployees, cameToday, lateToday, onLeaveToday, absentToday, pendingLeaves }
+   * @param {Object} stats - { totalPersonnel, cameToday, lateToday, onLeaveToday, absentToday, pendingLeaves }
    * @returns {string} HTML string
    */
   render(stats) {
-    const todayIsHoliday = this.isHoliday();
-    
-    const cameTodayValue = todayIsHoliday ? '—' : stats.cameToday;
-    const lateTodayValue = todayIsHoliday ? '—' : stats.lateToday;
-    
-    const absentCount = stats.absentToday !== undefined 
-      ? stats.absentToday 
-      : Math.max(0, (stats.totalEmployees || 0) - (stats.cameToday || 0) - (stats.onLeaveToday || 0));
-
-    const absentTodayValue = todayIsHoliday ? '—' : absentCount;
-    const pendingLeavesValue = stats.pendingLeaves !== undefined ? stats.pendingLeaves : 2;
+    const totalPersonnelValue = stats.totalPersonnel !== undefined ? stats.totalPersonnel : (stats.totalEmployees || 0);
+    const cameTodayValue = stats.cameToday !== undefined ? stats.cameToday : (stats.activePersonnel || 0);
+    const lateTodayValue = stats.lateToday !== undefined ? stats.lateToday : (stats.latePersonnel || 0);
+    const absentTodayValue = stats.absentToday !== undefined ? stats.absentToday : (stats.absentPersonnel || 0);
+    const onLeaveTodayValue = stats.onLeaveToday !== undefined ? stats.onLeaveToday : (stats.onLeavePersonnel || 0);
+    const pendingLeavesValue = stats.pendingLeaves !== undefined ? stats.pendingLeaves : 0;
 
     return `
       <!-- Compact Quick Info Cards Grid (6 Columns - Draggable Widget) -->
@@ -47,13 +22,13 @@ export class StatsWidget {
         <!-- Card 1: Toplam Personel -->
         <div class="bg-white dark:bg-dark-card border border-slate-100 dark:border-dark-border rounded-2xl p-4 shadow-xs hover:shadow-md transition-all">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Toplam</span>
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Toplam Personel</span>
             <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <i data-lucide="users" class="w-3.5 h-3.5"></i>
             </div>
           </div>
-          <div class="text-xl font-extrabold text-slate-900 dark:text-white">${stats.totalEmployees}</div>
-          <span class="text-[10px] font-semibold text-emerald-500 mt-1 block">Aktif Kadro</span>
+          <div class="text-xl font-extrabold text-slate-900 dark:text-white">${totalPersonnelValue}</div>
+          <span id="team-count-text" class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1 block">${stats.totalPersonnelSubtitle || 'Kayıtlı Kadro'}</span>
         </div>
 
         <!-- Card 2: Bugün Mevcut -->
@@ -92,18 +67,15 @@ export class StatsWidget {
           <span class="text-[10px] font-semibold text-orange-500 mt-1 block">Gelmeyen</span>
         </div>
 
-        <!-- Card 5: İzinli (Pop-up Modal Trigger) -->
-        <div id="card-on-leave-stats" class="bg-white dark:bg-dark-card border border-slate-100 dark:border-dark-border rounded-2xl p-4 shadow-xs hover:shadow-lg hover:border-amber-500/50 transition-all cursor-pointer group">
+        <!-- Card 5: İzinli -->
+        <div class="bg-white dark:bg-dark-card border border-slate-100 dark:border-dark-border rounded-2xl p-4 shadow-xs hover:shadow-md transition-all">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-slate-400 group-hover:text-amber-600 uppercase tracking-wider transition-colors">İzinli</span>
-            <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">İzinli</span>
+            <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <i data-lucide="calendar-off" class="w-3.5 h-3.5"></i>
             </div>
           </div>
-          <div class="flex items-baseline justify-between">
-            <div class="text-xl font-extrabold text-slate-900 dark:text-white">${stats.onLeaveToday}</div>
-            <span class="text-[9px] font-bold text-amber-500 flex items-center gap-0.5">Detay <i data-lucide="chevron-right" class="w-2.5 h-2.5"></i></span>
-          </div>
+          <div class="text-xl font-extrabold text-slate-900 dark:text-white">${onLeaveTodayValue}</div>
           <span class="text-[10px] font-semibold text-amber-500 mt-1 block">Planlı İzinli</span>
         </div>
 

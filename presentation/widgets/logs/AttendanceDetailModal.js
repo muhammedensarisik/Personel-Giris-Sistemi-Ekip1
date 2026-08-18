@@ -1,27 +1,28 @@
 /**
  * AttendanceDetailModal controls the overlay popup rendering when viewing employee daily logs.
+ * Displays database arrival status (OnTime / Late -> Zamanında Geldi / Geç Kaldı), check-in, check-out, duration, and IP details.
  */
 export class AttendanceDetailModal {
   render(item, employee) {
     // Strictly format checking time outputs
     const formatTime = (rawTime) => {
-      if (!rawTime || rawTime === 'null' || rawTime === 'undefined' || rawTime === '') {
-        return '—';
+      if (!rawTime || rawTime === 'null' || rawTime === 'undefined' || rawTime === '' || rawTime === '—') {
+        return '--:--';
       }
       try {
         if (typeof rawTime === 'string' && /^\d{2}:\d{2}$/.test(rawTime)) {
           return rawTime;
         }
         const date = new Date(rawTime);
-        if (isNaN(date.getTime())) return '—';
+        if (isNaN(date.getTime())) return '--:--';
         return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       } catch (e) {
-        return '—';
+        return '--:--';
       }
     };
 
     const getDuration = (entry, exit) => {
-      if (!exit || exit === 'null' || exit === 'undefined' || exit === '') return 'Halen İçeride';
+      if (!exit || exit === 'null' || exit === 'undefined' || exit === '' || exit === '—') return 'Devam Ediyor (İçeride)';
       try {
         const entryDate = new Date(entry);
         const exitDate = new Date(exit);
@@ -46,62 +47,85 @@ export class AttendanceDetailModal {
       }
     };
 
-    const durationText = getDuration(item?.entryTime, item?.exitTime);
-    const displayDate = formatDate(item?.entryTime || item?.time);
-    const entryTime = formatTime(item?.entryTime || item?.time);
-    const exitTime = formatTime(item?.exitTime);
+    const durationText = getDuration(item?.checkInTime || item?.entryTime || item?.time, item?.checkOutTime || item?.exitTime);
+    const displayDate = formatDate(item?.checkInTime || item?.entryTime || item?.time);
+    const entryTime = formatTime(item?.checkInTime || item?.entryTime || item?.time);
+    const exitTime = formatTime(item?.checkOutTime || item?.exitTime);
 
-    // Mock extra metadata fields for premium looks
+    // DB Arrival Status (OnTime / Late)
+    const rawStatus = (item?.status || item?.durum || '').toString().toLowerCase();
+    let dbStatusBadge = '';
+    if (rawStatus.includes('late') || rawStatus.includes('geç') || rawStatus.includes('gecik')) {
+      dbStatusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300/40">🔴 Geç Kaldı</span>`;
+    } else {
+      dbStatusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">🟢 Zamanında Geldi</span>`;
+    }
+
+    // Extra metadata fields
     const device = item?.device || 'RFID Kart Okuyucu (RFID-A4)';
     const location = item?.location || 'Merkez Ofis - Ana Giriş';
     const ipAddress = item?.ipAddress || '192.168.1.102';
 
+    const empName = employee?.fullName || item?.personnelName || 'Bilinmeyen Personel';
+    const empRole = employee?.role || item?.role || 'Personel';
+    const empDept = employee?.department || item?.department || 'Genel Kadro';
+    const initials = (empName.split(' ')[0][0] + (empName.split(' ')[1]?.[0] || '')).toUpperCase();
+
     return `
       <!-- Modal Overlay -->
-      <div id="attendance-modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center fade-in">
+      <div id="attendance-modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in">
         <!-- Backdrop -->
         <div id="btn-close-modal-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
         
         <!-- Modal Card Container -->
-        <div class="relative w-full max-w-lg bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl p-6 transform transition-all">
+        <div class="relative w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl p-6 transform transition-all">
           
           <!-- Header -->
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Giriş/Çıkış Detayı</h3>
+          <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="info" class="w-4 h-4 text-indigo-500"></i>
+              Giriş/Çıkış Detayı
+            </h3>
             <button id="btn-close-modal-x" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
-              <i data-lucide="x" class="w-4 h-4"></i>
+              <i data-lucide="x" class="w-5 h-5"></i>
             </button>
           </div>
 
           <!-- Employee Card -->
-          <div class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100/50 dark:border-slate-800/40 mb-6">
-            <div class="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
-              ${employee?.avatar || '??'}
+          <div class="flex items-center gap-3.5 p-3.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100/80 dark:border-slate-800/40 mb-5">
+            <div class="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+              ${initials}
             </div>
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white">${employee?.fullName || 'Bilinmeyen'}</h4>
-              <p class="text-xs text-slate-500 dark:text-slate-400">${employee?.role || 'Bilinmeyen'} • <span class="font-semibold text-indigo-600 dark:text-indigo-400">${employee?.department || 'Bilinmeyen'}</span></p>
+            <div class="min-w-0">
+              <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate">${empName}</h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400 truncate">${empRole} • <span class="font-semibold text-indigo-600 dark:text-indigo-400">${empDept}</span></p>
             </div>
           </div>
 
+          <!-- Database Status Row (OnTime vs Late) -->
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/40 rounded-xl flex items-center justify-between mb-4">
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Devamlılık / Varış Durumu:</span>
+            ${dbStatusBadge}
+          </div>
+
           <!-- Detail Metrics grid -->
-          <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="grid grid-cols-2 gap-3 mb-5">
             <div class="p-3 bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/20 rounded-xl">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giriş Zamanı</span>
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">${entryTime}</span>
+              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giriş Saati</span>
+              <span class="text-sm font-bold text-slate-800 dark:text-slate-200">${entryTime}</span>
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/20 rounded-xl">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Çıkış Zamanı</span>
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">${exitTime}</span>
+              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Çıkış Saati</span>
+              <span class="text-sm font-bold text-slate-800 dark:text-slate-200">${exitTime}</span>
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/20 rounded-xl col-span-2">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">İçeride Kalma Süresi</span>
+              <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Çalışma Süresi</span>
               <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">${durationText}</span>
             </div>
           </div>
 
           <!-- Location & Tech Info -->
-          <div class="space-y-3.5 border-t border-slate-100 dark:border-slate-800/60 pt-4 text-xs">
+          <div class="space-y-3 border-t border-slate-100 dark:border-slate-800/60 pt-4 text-xs">
             <div class="flex items-center justify-between text-slate-600 dark:text-slate-400">
               <span class="text-slate-400 font-medium">Tarih:</span>
               <span class="font-semibold text-slate-800 dark:text-slate-200">${displayDate}</span>

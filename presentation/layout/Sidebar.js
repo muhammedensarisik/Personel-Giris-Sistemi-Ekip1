@@ -13,6 +13,32 @@ export class Sidebar {
     if (savedState === 'true') {
       this.setCollapsed(true);
     }
+    this.applyRoleRestrictions();
+  }
+
+  /**
+   * Role-based access control for sidebar items (Hides QR Kod Yönetimi for non-Admin users)
+   */
+  applyRoleRestrictions() {
+    try {
+      const userStr = localStorage.getItem('currentUser');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const role = (user.role || user.Role || '').toLowerCase();
+        const isAdmin = role === 'admin';
+
+        const btnQr = document.getElementById('btn-qr');
+        const mobBtnQr = document.getElementById('mob-btn-qr');
+
+        if (!isAdmin) {
+          if (btnQr) btnQr.classList.add('hidden');
+          if (mobBtnQr) mobBtnQr.classList.add('hidden');
+        } else {
+          if (btnQr) btnQr.classList.remove('hidden');
+          if (mobBtnQr) mobBtnQr.classList.remove('hidden');
+        }
+      }
+    } catch (e) {}
   }
 
   /**
@@ -55,7 +81,7 @@ export class Sidebar {
    * @param {string} tabId 
    */
   setActiveTab(tabId) {
-    ['dashboard', 'personeller', 'logs', 'overtime', 'leave', 'duyurular', 'auditlogs', 'raporlar'].forEach(id => {
+    ['dashboard', 'personeller', 'logs', 'overtime', 'leave', 'holidays', 'support', 'duyurular', 'auditlogs', 'raporlar', 'qr'].forEach(id => {
       const btn = document.getElementById(`btn-${id}`);
       const mobBtn = document.getElementById(`mob-btn-${id}`);
       

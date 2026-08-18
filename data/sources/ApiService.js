@@ -182,10 +182,18 @@ export class ApiService {
   }
 
   /**
-   * Dashboard Recent Attendance Logs (/api/dashboard/recent)
+   * Dashboard Recent Attendance Logs (/api/dashboard/recent or /api/attendance/recent)
    */
   async getDashboardRecent() {
-    return this.get('/api/dashboard/recent');
+    const res = await this.get('/api/attendance/recent');
+    if (!res.success && res.status !== 200 && res.error) {
+      return this.get('/api/dashboard/recent');
+    }
+    return res;
+  }
+
+  async getAttendanceRecent() {
+    return this.getDashboardRecent();
   }
 
   /**
@@ -202,6 +210,136 @@ export class ApiService {
    */
   async updateDashboardLeaveStatus(id, status) {
     return this.put(`/api/dashboard/leave/${id}/status`, { status });
+  }
+
+  /**
+   * System Settings API Endpoints (/api/systemsettings)
+   */
+  async getSystemSettings() {
+    return this.get('/api/systemsettings');
+  }
+
+  async updateSystemSettings(settingsData) {
+    return this.put('/api/systemsettings', settingsData);
+  }
+
+  /**
+   * GET /api/dashboard/personnel-stats or /api/personnel-stats - Role counts breakdown (manager, user, admin)
+   */
+  async getPersonnelStats() {
+    let res = await this.get('/api/dashboard/personnel-stats');
+    if (!res || (res.success === false && !res.manager && !res.data)) {
+      const fallback = await this.get('/api/personnel-stats');
+      if (fallback && (fallback.manager !== undefined || fallback.data || fallback.success)) {
+        res = fallback;
+      }
+    }
+    return res;
+  }
+
+  /**
+   * GET /api/Location/active - Returns active institution locations directly from backend
+   */
+  async getActiveLocations() {
+    let res = await this.get('/api/Location/active');
+    if (!res || (res.success === false && !Array.isArray(res) && !res.data)) {
+      const fallback = await this.get('/api/locations/active');
+      if (fallback && (fallback.success !== false || Array.isArray(fallback) || fallback.data)) {
+        res = fallback;
+      }
+    }
+    return res;
+  }
+
+  /**
+   * PUT /api/Location/update-coordinates/{locationId} - Updates GPS coordinates for location
+   * @param {string|number} locationId
+   * @param {number} latitude
+   * @param {number} longitude
+   */
+  async updateLocationCoordinates(locationId, latitude, longitude) {
+    let res = await this.put(`/api/Location/update-coordinates/${locationId}`, {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude)
+    });
+    if (!res || res.success === false) {
+      const fallback = await this.put(`/api/location/update-coordinates/${locationId}`, {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude)
+      });
+      if (fallback && fallback.success !== false) {
+        res = fallback;
+      }
+    }
+    return res;
+  }
+
+  /**
+   * POST /api/QrAttendance/generate/{locationId} - Generates dynamic QR data token for location
+   * @param {string|number} locationId
+   */
+  async generateQrCode(locationId) {
+    let res = await this.post(`/api/QrAttendance/generate/${locationId}`, {});
+    if (!res || (res.success === false && !res.qrData && !res.token && !res.code && typeof res !== 'string')) {
+      const getRes = await this.get(`/api/QrAttendance/generate/${locationId}`);
+      if (getRes && (getRes.success !== false || typeof getRes === 'string' || getRes.qrData || getRes.token || getRes.code)) {
+        res = getRes;
+      } else {
+        const fallback = await this.post(`/api/qr/generate/${locationId}`, {});
+        if (fallback && (fallback.success || fallback.qrData || fallback.token || fallback.code || typeof fallback === 'string')) {
+          res = fallback;
+        }
+      }
+    }
+    return res;
+  }
+
+  /**
+   * POST /api/QrAttendance/regenerate/{locationId} - Force regenerates and invalidates old QR tokens
+   * @param {string|number} locationId
+   */
+  async regenerateQrCode(locationId) {
+    let res = await this.post(`/api/QrAttendance/regenerate/${locationId}`, {});
+    if (!res || (res.success === false && !res.qrData && !res.token && !res.code && typeof res !== 'string')) {
+      const fallback = await this.post(`/api/qr/regenerate/${locationId}`, {});
+      if (fallback && (fallback.success || fallback.qrData || fallback.token || fallback.code || typeof fallback === 'string')) {
+        res = fallback;
+      }
+    }
+    return res;
+  }
+
+  /**
+   * GET /api/dashboard/currently-present - Active shift employees count
+   */
+  async getCurrentlyPresent() {
+    const res = await this.get('/api/dashboard/currently-present');
+    if (!res.success && res.status !== 200 && res.error) {
+      return this.get('/api/dashboard/stats');
+    }
+    return res;
+  }
+
+  /**
+   * GET /api/leaves/current - List of personnel currently on leave
+   */
+  async getCurrentLeaves() {
+    const res = await this.get('/api/leaves/current');
+    if (!res.success && res.status !== 200 && res.error) {
+      return this.get('/api/dashboard/on-leave-today');
+    }
+    return res;
+  }
+
+  /**
+   * GET /api/leaves/pending-count - Count of pending leave requests
+   */
+  async getPendingLeaveCount() {
+    const res = await this.get('/api/leaves/pending-count');
+    if (!res.success && res.status !== 200 && res.error) {
+      return this.get('/api/dashboard/stats');
+    }
+    return res;
   }
 
   /**
@@ -222,6 +360,89 @@ export class ApiService {
     const res = await this.put(`/api/leaverequest/${id}/status`, { status, adminNote });
     if (!res.success) {
       return this.put(`/api/leaverequests/${id}/status`, { status, adminNote });
+    }
+    return res;
+  }
+
+  /**
+   * GET /api/attendance/panel - Attendance panel data with X-User-Id and X-User-Role headers
+   */
+  async getAttendancePanel() {
+    return this.get('/api/attendance/panel');
+  }
+
+  /**
+   * Holiday API Endpoints (/api/Holiday)
+   */
+  async getHolidays() {
+    const res = await this.get('/api/Holiday');
+    if (!res.success) {
+      return this.get('/api/holiday');
+    }
+    return res;
+  }
+
+  async createHoliday(data) {
+    const res = await this.post('/api/Holiday', data);
+    if (!res.success) {
+      return this.post('/api/holiday', data);
+    }
+    return res;
+  }
+
+  async deleteHoliday(id) {
+    const res = await this.delete(`/api/Holiday/${id}`);
+    if (!res.success) {
+      return this.delete(`/api/holiday/${id}`);
+    }
+    return res;
+  }
+
+  /**
+   * Support Tickets Admin API Endpoints (/api/SupportTickets)
+   */
+  async getSupportTicketsAdmin() {
+    let userId = '1';
+    let userRole = 'admin';
+    try {
+      const userStr = localStorage.getItem('currentUser');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userId = user.id || user.userId || user.Id || user.UserId || '1';
+        userRole = user.role || user.Role || 'admin';
+      }
+    } catch (e) {}
+
+    // Primary requested endpoint: GET /api/SupportTickets/list/{userId}?role={userRole}
+    let res = await this.get(`/api/SupportTickets/list/${userId}?role=${encodeURIComponent(userRole)}`);
+    
+    if (!res.success) {
+      // Fallback 1: lowercase /api/supporttickets/list/{userId}?role={userRole}
+      res = await this.get(`/api/supporttickets/list/${userId}?role=${encodeURIComponent(userRole)}`);
+    }
+
+    if (!res.success) {
+      // Fallback 2: GET /api/SupportTickets/admin/all
+      res = await this.get('/api/SupportTickets/admin/all');
+    }
+
+    if (!res.success) {
+      // Fallback 3: lowercase /api/supporttickets/admin/all
+      res = await this.get('/api/supporttickets/admin/all');
+    }
+
+    console.log("Backendden Gelen Biletler:", res.data !== undefined ? res.data : res);
+    return res;
+  }
+
+  async updateSupportTicketStatus(id, status) {
+    const res = await this.put(`/api/SupportTickets/${id}/status`, { status });
+    if (!res.success) {
+      const fallback = await this.put(`/api/supporttickets/${id}/status`, { status });
+      if (!fallback.success) {
+        return this.put(`/api/SupportTickets/${id}/status`, typeof status === 'string' ? JSON.stringify(status) : status);
+      }
+      return fallback;
     }
     return res;
   }

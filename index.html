@@ -203,11 +203,11 @@
     <!-- Brand / Logo -->
     <div class="h-16 flex items-center justify-between px-4 border-b border-slate-800">
       <div class="flex items-center gap-3 sidebar-text-content">
-        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-600/30 shrink-0">
-          AG
+        <div id="sidebar-logo-box" class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-600/30 shrink-0">
+          MB
         </div>
         <div class="flex flex-col min-w-0">
-          <span class="font-bold text-white text-sm tracking-wide truncate">ANTIGRAVITY</span>
+          <span id="sidebar-company-name" class="font-bold text-white text-sm tracking-wide truncate">Meram Belediyesi</span>
           <span class="text-[10px] text-slate-500 font-medium truncate">KONTROL PANELİ</span>
         </div>
       </div>
@@ -225,6 +225,11 @@
       <button onclick="switchTab('dashboard')" id="btn-dashboard" title="Dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group active-nav bg-indigo-600 text-white shadow-md shadow-indigo-600/10">
         <i data-lucide="layout-dashboard" class="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"></i>
         <span>Dashboard</span>
+      </button>
+
+      <button onclick="switchTab('qr')" id="btn-qr" title="QR Kod Gösterimi" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="qr-code" class="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"></i>
+        <span>QR Kod Gösterimi</span>
       </button>
 
       <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Yönetim</p>
@@ -247,6 +252,16 @@
       <button onclick="switchTab('leave')" id="btn-leave" title="İzin Talepleri" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
         <i data-lucide="calendar-off" class="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"></i>
         <span>İzin Talepleri</span>
+      </button>
+
+      <button onclick="switchTab('holidays')" id="btn-holidays" title="Tatil ve Özel Günler" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="calendar-days" class="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"></i>
+        <span>Tatil ve Özel Günler</span>
+      </button>
+
+      <button onclick="switchTab('support')" id="btn-support" title="Destek Talepleri" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
+        <i data-lucide="headset" class="w-4 h-4 transition-transform group-hover:scale-110 shrink-0"></i>
+        <span>Destek Talepleri</span>
       </button>
 
       <button onclick="switchTab('duyurular')" id="btn-duyurular" title="Duyurular" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all group">
@@ -293,10 +308,13 @@
     <div class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col z-50 shadow-2xl transition-transform transform translate-x-0 duration-300">
       <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-            AG
+          <div id="mob-sidebar-logo-box" class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-600/30 shrink-0">
+            MB
           </div>
-          <span class="font-bold text-white text-sm tracking-wide">ANTIGRAVITY</span>
+          <div class="flex flex-col min-w-0">
+            <span id="mob-sidebar-company-name" class="font-bold text-white text-sm tracking-wide truncate">Meram Belediyesi</span>
+            <span class="text-[10px] text-slate-500 font-medium truncate">KONTROL PANELİ</span>
+          </div>
         </div>
         <button onclick="toggleMobileSidebar()" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -308,6 +326,10 @@
         <button onclick="switchTab('dashboard'); toggleMobileSidebar()" id="mob-btn-dashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
           <span>Dashboard</span>
+        </button>
+        <button onclick="switchTab('qr'); toggleMobileSidebar()" id="mob-btn-qr" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          <span>QR Kod Gösterimi</span>
         </button>
 
         <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Yönetim</p>
@@ -328,6 +350,16 @@
         <button onclick="switchTab('leave'); toggleMobileSidebar()" id="mob-btn-leave" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
           <i data-lucide="calendar-off" class="w-4 h-4"></i>
           <span>İzin Talepleri</span>
+        </button>
+
+        <button onclick="switchTab('holidays'); toggleMobileSidebar()" id="mob-btn-holidays" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="calendar-days" class="w-4 h-4"></i>
+          <span>Tatil ve Özel Günler</span>
+        </button>
+
+        <button onclick="switchTab('support'); toggleMobileSidebar()" id="mob-btn-support" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="headset" class="w-4 h-4"></i>
+          <span>Destek Talepleri</span>
         </button>
 
         <button onclick="switchTab('duyurular'); toggleMobileSidebar()" id="mob-btn-duyurular" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
@@ -426,7 +458,7 @@
               <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 <i data-lucide="user" class="w-4 h-4"></i> Profil Bilgileri
               </a>
-              <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <a href="#" onclick="if (typeof window.openSystemSettingsModal === 'function') { window.openSystemSettingsModal(); } if (typeof window.toggleProfileDropdown === 'function') { window.toggleProfileDropdown(); } return false;" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 <i data-lucide="settings" class="w-4 h-4"></i> Ayarlar
               </a>
               <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
@@ -475,7 +507,7 @@
           </select>
         </div>
 
-        <div>
+        <div id="conditional-role-fields">
           <div class="flex items-center justify-between mb-1">
             <label class="font-semibold text-slate-700 dark:text-slate-300">Sistem Rolü</label>
             <span id="role-lock-badge" class="hidden text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-800/40 items-center gap-1">
